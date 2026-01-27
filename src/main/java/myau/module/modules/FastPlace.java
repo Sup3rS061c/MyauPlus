@@ -24,10 +24,14 @@ import java.util.Locale;
 public class FastPlace extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
     private static final DecimalFormat df = new DecimalFormat("0.0#", new DecimalFormatSymbols(Locale.US));
-    private long delayMS = 0L;
     public final FloatProperty delay = new FloatProperty("delay", 1.0F, 1.0F, 3.0F);
     public final BooleanProperty blocksOnly = new BooleanProperty("blocks-only", true);
     public final BooleanProperty placeFix = new BooleanProperty("place-fix", true);
+    private long delayMS = 0L;
+
+    public FastPlace() {
+        super("FastPlace", "Allows you to place blocks faster.", Category.MOVEMENT, 0, false, false);
+    }
 
     private boolean canPlace() {
         ItemStack stack = mc.thePlayer.getHeldItem();
@@ -49,10 +53,6 @@ public class FastPlace extends Module {
             }
         }
         return !(Boolean) this.blocksOnly.getValue();
-    }
-
-    public FastPlace() {
-        super("FastPlace", "Allows you to place blocks faster.", Category.MOVEMENT, 0, false, false);
     }
 
     @EventTarget

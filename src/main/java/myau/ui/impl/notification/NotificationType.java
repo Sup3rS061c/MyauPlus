@@ -2,7 +2,7 @@ package myau.ui.impl.notification;
 
 import lombok.Getter;
 
-import java.awt.Color;
+import java.awt.*;
 
 @Getter
 public enum NotificationType {

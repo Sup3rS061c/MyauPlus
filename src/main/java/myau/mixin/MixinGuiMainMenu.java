@@ -2,12 +2,11 @@ package myau.mixin;
 
 import myau.Myau;
 import myau.management.altmanager.AltManagerGui;
+import myau.ui.impl.gui.BackgroundRenderer;
 import myau.ui.impl.gui.GuiBackgroundSelector;
 import myau.ui.impl.gui.ModernGuiButton;
 import myau.util.AnimationUtil;
-import myau.ui.impl.gui.BackgroundRenderer;
 import myau.util.font.FontManager;
-
 import net.minecraft.client.gui.*;
 import net.minecraft.client.renderer.GlStateManager;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,7 +21,8 @@ import java.io.IOException;
 @Mixin(GuiMainMenu.class)
 public abstract class MixinGuiMainMenu extends GuiScreen {
 
-    @Unique private float animProgress = 0.0f;
+    @Unique
+    private float animProgress = 0.0f;
 
     @Inject(method = "initGui", at = @At("TAIL"))
     public void onInitGui(CallbackInfo ci) {
@@ -64,7 +64,7 @@ public abstract class MixinGuiMainMenu extends GuiScreen {
 
     @Inject(method = "drawScreen", at = @At("HEAD"), cancellable = true)
     public void onDrawScreen(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
-        BackgroundRenderer.draw(this.width, this.height, mouseX, mouseY);
+        BackgroundRenderer.draw(this.width, this.height);
         animProgress = AnimationUtil.animate(1.0f, animProgress, 0.14f, 1.0f);
 
         // --- 修正后的标题位置 ---
@@ -107,7 +107,7 @@ public abstract class MixinGuiMainMenu extends GuiScreen {
         GlStateManager.pushMatrix();
 
         float s = 1.0f + (1.0f - animProgress) * 0.2f;
-        int alpha = (int)(255 * animProgress);
+        int alpha = (int) (255 * animProgress);
         int color = new Color(255, 255, 255, alpha).getRGB();
         int subColor = new Color(180, 180, 180, Math.max(0, alpha - 80)).getRGB();
 
@@ -115,8 +115,8 @@ public abstract class MixinGuiMainMenu extends GuiScreen {
         GlStateManager.scale(s, s, 1f);
         GlStateManager.translate(-x, -y, 0);
 
-        if (FontManager.tenacity80 != null) {
-            FontManager.tenacity80.drawCenteredString("Myau+", x, y, color);
+        if (FontManager.nunitoBold80 != null) {
+            FontManager.nunitoBold80.drawCenteredString("Myau+", x, y, color);
 
             // 副标题位置保持不变，确保与按钮的间距固定
             if (FontManager.productSans16 != null) {
@@ -126,7 +126,7 @@ public abstract class MixinGuiMainMenu extends GuiScreen {
             }
         } else {
             GlStateManager.scale(3.5, 3.5, 1);
-            this.drawCenteredString(this.fontRendererObj, "Myau+", (int)(x/3.5), (int)(y/3.5), color);
+            this.drawCenteredString(this.fontRendererObj, "Myau+", (int) (x / 3.5), (int) (y / 3.5), color);
         }
         GlStateManager.popMatrix();
     }
@@ -144,14 +144,26 @@ public abstract class MixinGuiMainMenu extends GuiScreen {
 
     @Inject(method = "actionPerformed", at = @At("HEAD"), cancellable = true)
     protected void onActionPerformed(GuiButton button, CallbackInfo ci) throws IOException {
-        GuiScreen parent = (GuiScreen)(Object)this;
+        GuiScreen parent = (GuiScreen) (Object) this;
         switch (button.id) {
-            case 0: this.mc.displayGuiScreen(new GuiOptions(parent, this.mc.gameSettings)); break;
-            case 1: this.mc.displayGuiScreen(new GuiSelectWorld(parent)); break;
-            case 2: this.mc.displayGuiScreen(new GuiMultiplayer(parent)); break;
-            case 4: this.mc.shutdown(); break;
-            case 10: this.mc.displayGuiScreen(new GuiBackgroundSelector(parent)); break;
-            case 11: this.mc.displayGuiScreen(new AltManagerGui((GuiMainMenu)(Object)this)); break;
+            case 0:
+                this.mc.displayGuiScreen(new GuiOptions(parent, this.mc.gameSettings));
+                break;
+            case 1:
+                this.mc.displayGuiScreen(new GuiSelectWorld(parent));
+                break;
+            case 2:
+                this.mc.displayGuiScreen(new GuiMultiplayer(parent));
+                break;
+            case 4:
+                this.mc.shutdown();
+                break;
+            case 10:
+                this.mc.displayGuiScreen(new GuiBackgroundSelector(parent));
+                break;
+            case 11:
+                this.mc.displayGuiScreen(new AltManagerGui((GuiMainMenu) (Object) this));
+                break;
         }
         if (button.id >= 0 && button.id <= 11 && button.id != 3 && button.id != 5) ci.cancel();
     }

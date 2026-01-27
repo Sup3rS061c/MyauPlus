@@ -2,7 +2,7 @@ package myau.management.altmanager;
 
 import myau.event.EventTarget;
 import myau.events.PacketEvent;
-import myau.util.*;
+import myau.util.ChatUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.play.server.S40PacketDisconnect;
 import net.minecraft.util.IChatComponent;
@@ -22,18 +22,18 @@ public class BanDetectionHandler {
     public void onReceivePacket(PacketEvent event) {
         if (event.getPacket() instanceof S40PacketDisconnect) {
             S40PacketDisconnect disconnectPacket = (S40PacketDisconnect) event.getPacket();
-            
+
             try {
                 // Get the disconnect reason/message
                 IChatComponent reason = disconnectPacket.getReason();
                 if (reason != null) {
                     String message = reason.getUnformattedText().toLowerCase();
-                    
+
                     // Check if the message contains ban-related keywords
                     if (message.contains("suspended") || message.contains("banned") || message.contains("kicked")) {
                         // Get the current account name
                         String currentUsername = Minecraft.getMinecraft().getSession().getUsername();
-                        
+
                         if (currentUsername != null && !currentUsername.isEmpty()) {
                             // Mark the account as banned
                             markAccountAsBanned(currentUsername);
@@ -57,7 +57,7 @@ public class BanDetectionHandler {
                 break;
             }
         }
-        
+
         // Also update AccountData if needed
         AccountData.setBanned(username);
     }

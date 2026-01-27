@@ -15,10 +15,6 @@ import java.io.IOException;
 public class GuiBackgroundSelector extends GuiScreen {
     private final GuiScreen parent;
 
-    // 常量定义
-    private final int PANEL_WIDTH = 320;
-    private final int PANEL_HEIGHT = 220;
-
     // 动画状态
     private float openAnim = 0.0f;
     private boolean closing = false; //用于处理关闭动画
@@ -64,23 +60,29 @@ public class GuiBackgroundSelector extends GuiScreen {
 
     private String getShaderName(int id) {
         switch (id) {
-            case 1: return "MyauPlus";
-            case 2: return "Rise";
-            case 3: return "Cosmos";
-            case 4: return "Minecraft"; // 原版风格
-            case 5: return "Circle";
-            default: return "Unknown";
+            case 1:
+                return "MyauPlus";
+            case 2:
+                return "Rise";
+            case 3:
+                return "Cosmos";
+            case 4:
+                return "Minecraft"; // 原版风格
+            case 5:
+                return "Circle";
+            default:
+                return "Unknown";
         }
     }
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         // 1. 绘制 Shader 背景
-        BackgroundRenderer.draw(this.width, this.height, mouseX, mouseY);
+        BackgroundRenderer.draw(this.width, this.height);
 
         // 2. 绘制全屏黑色遮罩 (Fade in)
         // 随着动画进度加深背景，聚焦中间面板
-        drawRect(0, 0, this.width, this.height, new Color(0, 0, 0, (int)(100 * openAnim)).getRGB());
+        drawRect(0, 0, this.width, this.height, new Color(0, 0, 0, (int) (100 * openAnim)).getRGB());
 
         // 3. 动画逻辑
         if (closing) {
@@ -101,7 +103,10 @@ public class GuiBackgroundSelector extends GuiScreen {
         GlStateManager.scale(openAnim, openAnim, 1f);
         GlStateManager.translate(-this.width / 2.0f, -this.height / 2.0f, 0);
 
+        // 常量定义
+        int PANEL_WIDTH = 320;
         int panelX = (this.width - PANEL_WIDTH) / 2;
+        int PANEL_HEIGHT = 220;
         int panelY = (this.height - PANEL_HEIGHT) / 2;
 
         // 背景
@@ -137,7 +142,7 @@ public class GuiBackgroundSelector extends GuiScreen {
     }
 
     @Override
-    protected void actionPerformed(GuiButton button) throws IOException {
+    protected void actionPerformed(GuiButton button) {
         if (button.id == 0) {
             this.closing = true; // 触发关闭动画
         } else if (button.id >= 1 && button.id <= 5) {

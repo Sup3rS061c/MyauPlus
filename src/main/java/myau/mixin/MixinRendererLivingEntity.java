@@ -44,22 +44,25 @@ public abstract class MixinRendererLivingEntity<T extends EntityLivingBase> exte
         EventManager.call(new RenderLivingEvent(EventType.POST, entityLivingBase));
     }
 
-    @Inject(
-            method = {"canRenderName(Lnet/minecraft/entity/EntityLivingBase;)Z"},
-            at = {@At("HEAD")},
-            cancellable = true
-    )
-    private void canRenderName(T entityLivingBase, CallbackInfoReturnable<Boolean> callbackInfoReturnable) {
-        if (Myau.moduleManager != null) {
-            NameTags nameTags = (NameTags) Myau.moduleManager.modules.get(NameTags.class);
-            if (nameTags.isEnabled() && nameTags.shouldRenderTags(entityLivingBase)) {
-                callbackInfoReturnable.setReturnValue(false);
-            } else {
-                ESP esp = (ESP) Myau.moduleManager.modules.get(ESP.class);
-                if (esp.isEnabled() && !esp.isOutlineEnabled()) {
-                    callbackInfoReturnable.setReturnValue(false);
-                }
-            }
+    @Inject(method = "canRenderName(Lnet/minecraft/entity/EntityLivingBase;)Z", at = @At("HEAD"), cancellable = true)
+    private void canRenderName(T entity, CallbackInfoReturnable<Boolean> cir) {
+        if (Myau.moduleManager == null) return;
+
+        NameTags nameTags = (NameTags) Myau.moduleManager.modules.get(NameTags.class);
+        if (nameTags != null && nameTags.isEnabled() && nameTags.shouldRenderTags(entity)) {
+            cir.setReturnValue(false);
+            return;
+        }
+
+        myau.module.modules.ESP2D esp2d = (myau.module.modules.ESP2D) Myau.moduleManager.modules.get(myau.module.modules.ESP2D.class);
+        if (esp2d != null && esp2d.isEnabled() && esp2d.tagsValue.getValue() && esp2d.isValidEntity(entity)) {
+            cir.setReturnValue(false);
+            return;
+        }
+
+        ESP esp = (ESP) Myau.moduleManager.modules.get(ESP.class);
+        if (esp != null && esp.isEnabled() && !esp.isOutlineEnabled()) {
+            cir.setReturnValue(false);
         }
     }
 }

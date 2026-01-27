@@ -1,6 +1,7 @@
 package myau.module.modules;
 
 import com.google.common.base.CaseFormat;
+import lombok.Getter;
 import myau.Myau;
 import myau.event.EventTarget;
 import myau.event.types.EventType;
@@ -22,41 +23,40 @@ import net.minecraft.network.play.server.S08PacketPlayerPosLook;
 
 public class LongJump extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
+    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"FIREBALL", "FIREBALL_MANUAL", "FIREBALL_HIGH", "FIREBALL_FLAT"});
+    public final FloatProperty motion = new FloatProperty("motion", 1.0F, 1.0F, 20.0F);
+    public final FloatProperty speedMotion = new FloatProperty("speed-motion", 1.0F, 1.0F, 20.0F);
+    public final PercentProperty strafe = new PercentProperty("strafe", 0);
     private final TimerUtil fireballTimer = new TimerUtil();
     private final TimerUtil jumpTimer = new TimerUtil();
+    @Getter
     private boolean isJumping = false;
     private int tickCounter = 0;
     private int jumpModeStage = 0;
     private boolean readyToUseFireball = false;
     private boolean fireballLaunched = false;
     private int savedHotbarSlot = -1;
-    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"FIREBALL", "FIREBALL_MANUAL", "FIREBALL_HIGH", "FIREBALL_FLAT"});
-    public final FloatProperty motion = new FloatProperty("motion", 1.0F, 1.0F, 20.0F);
-    public final FloatProperty speedMotion = new FloatProperty("speed-motion", 1.0F, 1.0F, 20.0F);
-    public final PercentProperty strafe = new PercentProperty("strafe", 0);
+
+    public LongJump() {
+        super("LongJump", "Increases your jump length.", Category.MOVEMENT, 0, false, false);
+    }
 
     private int findFireballInHotbar() {
-        if (mc.thePlayer == null) {
-            return -1;
-        } else {
+        if (mc.thePlayer != null) {
             for (int i = 0; i < 9; i++) {
                 ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
                 if (stack != null && stack.getItem() instanceof ItemFireball) {
                     return i;
                 }
             }
-            return -1;
         }
+        return -1;
     }
 
     private double getMotionFactor() {
         return MoveUtil.getSpeedLevel() > 0
                 ? (double) this.speedMotion.getValue()
                 : (double) this.motion.getValue();
-    }
-
-    public LongJump() {
-        super("LongJump", "Increases your jump length.", Category.MOVEMENT, 0, false, false);
     }
 
     public boolean isAutoMode() {
@@ -73,10 +73,6 @@ public class LongJump extends Module {
 
     public boolean canStartJump() {
         return !this.fireballTimer.hasTimeElapsed(1000L) && !this.isJumping;
-    }
-
-    public boolean isJumping() {
-        return this.isJumping;
     }
 
     @EventTarget(Priority.HIGHEST)

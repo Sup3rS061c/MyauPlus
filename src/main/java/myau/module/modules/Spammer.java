@@ -11,11 +11,11 @@ import net.minecraft.client.Minecraft;
 
 public class Spammer extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private final TimerUtil timer = new TimerUtil();
-    private int charOffset = 19968;
     public final TextProperty text = new TextProperty("text", "meow");
     public final FloatProperty delay = new FloatProperty("delay", 3.5F, 0.0F, 3600.0F);
     public final IntProperty random = new IntProperty("random", 0, 0, 10);
+    private final TimerUtil timer = new TimerUtil();
+    private int charOffset = 19968;
 
     public Spammer() {
         super("Spammer", false);

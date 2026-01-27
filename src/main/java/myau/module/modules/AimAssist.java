@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 
 public class AimAssist extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private final TimerUtil timer = new TimerUtil();
     public final FloatProperty hSpeed = new FloatProperty("horizontal-speed", 3.0F, 0.0F, 10.0F);
     public final FloatProperty vSpeed = new FloatProperty("vertical-speed", 0.0F, 0.0F, 10.0F);
     public final PercentProperty smoothing = new PercentProperty("smoothing", 50);
@@ -33,6 +32,11 @@ public class AimAssist extends Module {
     public final BooleanProperty allowTools = new BooleanProperty("allow-tools", false, this.weaponOnly::getValue);
     public final BooleanProperty botChecks = new BooleanProperty("bot-check", true);
     public final BooleanProperty team = new BooleanProperty("teams", true);
+    private final TimerUtil timer = new TimerUtil();
+
+    public AimAssist() {
+        super("AimAssist", "Auto Aim", Category.COMBAT, 0, false, false);
+    }
 
     private boolean isValidTarget(EntityPlayer entityPlayer) {
         if (entityPlayer != mc.thePlayer && entityPlayer != mc.thePlayer.ridingEntity) {
@@ -64,10 +68,6 @@ public class AimAssist extends Module {
 
     private boolean isLookingAtBlock() {
         return mc.objectMouseOver != null && mc.objectMouseOver.typeOfHit == MovingObjectType.BLOCK;
-    }
-
-    public AimAssist() {
-        super("AimAssist","Auto Aim",Category.COMBAT,0,false,false);
     }
 
     @EventTarget

@@ -26,6 +26,7 @@ public class VclipCommand extends Command {
             try {
                 distance = Double.parseDouble(args.get(1));
             } catch (NumberFormatException e) {
+                throw new RuntimeException(e);
             } finally {
                 mc.thePlayer.setPositionAndUpdate(mc.thePlayer.posX, mc.thePlayer.posY + distance, mc.thePlayer.posZ);
                 ChatUtil.sendFormatted(String.format("%sClipped (%s blocks)", Myau.clientName, df.format(distance)));

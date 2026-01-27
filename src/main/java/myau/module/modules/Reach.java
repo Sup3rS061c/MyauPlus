@@ -17,13 +17,13 @@ import java.util.Random;
 
 public class Reach extends Module {
     private static final DecimalFormat df = new DecimalFormat("0.0#", new DecimalFormatSymbols(Locale.US));
-    private final Random theRandom = new Random();
-    private boolean expanding = true;
     public final FloatProperty range = new FloatProperty("range", 3.1F, 3.0F, 6.0F);
     public final PercentProperty chance = new PercentProperty("chance", 100);
+    private final Random theRandom = new Random();
+    private boolean expanding = true;
 
     public Reach() {
-        super("Reach","add more attack range",Category.COMBAT,0,false,false);
+        super("Reach", "add more attack range", Category.COMBAT, 0, false, false);
     }
 
     @EventTarget

@@ -38,6 +38,10 @@ public class ItemESP extends Module {
     public final BooleanProperty goldd = new BooleanProperty("gold", true);
     public final BooleanProperty iron = new BooleanProperty("iron", true);
 
+    public ItemESP() {
+        super("ItemESP", "ESP for items.", Category.RENDER, 0, false, false);
+    }
+
     private boolean shouldHighlightItem(int itemId) {
         return this.emeralds.getValue() && this.isEmeraldItem(itemId)
                 || this.diamonds.getValue() && this.isDiamondItem(itemId)
@@ -102,10 +106,6 @@ public class ItemESP extends Module {
         } else {
             return this.isIronItem(itemId) ? 1 : 0;
         }
-    }
-
-    public ItemESP() {
-        super("ItemESP","ESP for items.",Category.RENDER,0,false,false);
     }
 
     @EventTarget
@@ -179,11 +179,11 @@ public class ItemESP extends Module {
     }
 
     public static class ItemData {
-        private final int hashCode;
         public final int itemId;
         public final double x;
         public final double y;
         public final double z;
+        private final int hashCode;
 
         public ItemData(int id, double x, double y, double z) {
             this.itemId = id;

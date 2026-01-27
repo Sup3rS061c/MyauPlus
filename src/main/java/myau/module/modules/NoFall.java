@@ -26,20 +26,20 @@ import net.minecraft.util.AxisAlignedBB;
 
 public class NoFall extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
+    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"PACKET", "BLINK", "NO_GROUND", "SPOOF"});
+    public final FloatProperty distance = new FloatProperty("distance", 3.0F, 0.0F, 20.0F);
+    public final IntProperty delay = new IntProperty("delay", 0, 0, 10000);
     private final TimerUtil packetDelayTimer = new TimerUtil();
     private final TimerUtil scoreboardResetTimer = new TimerUtil();
     private boolean slowFalling = false;
     private boolean lastOnGround = false;
-    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"PACKET", "BLINK", "NO_GROUND", "SPOOF"});
-    public final FloatProperty distance = new FloatProperty("distance", 3.0F, 0.0F, 20.0F);
-    public final IntProperty delay = new IntProperty("delay", 0, 0, 10000);
+
+    public NoFall() {
+        super("NoFall", "remove fall down damage", Category.PLAYER, 0, false, false);
+    }
 
     private boolean canTrigger() {
         return this.scoreboardResetTimer.hasTimeElapsed(3000) && this.packetDelayTimer.hasTimeElapsed(this.delay.getValue().longValue());
-    }
-
-    public NoFall() {
-        super("NoFall","remove fall down damage",Category.PLAYER,0,false,false);
     }
 
     @EventTarget(Priority.HIGH)

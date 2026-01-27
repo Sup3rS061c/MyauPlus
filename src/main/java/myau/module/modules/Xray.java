@@ -34,6 +34,42 @@ public class Xray extends Module {
     private static final LinkedHashSet<Integer> xrayBlocks;
     private static final LinkedHashSet<Vec3i> caveOffsetsSmall;
     private static final LinkedHashSet<Vec3i> caveOffsetsLarge;
+
+    static {
+        xrayBlocks = new LinkedHashSet<>(Arrays.asList(56, 14, 15, 16, 73, 74, 21, 129, 52, 83, 115));
+        caveOffsetsSmall = new LinkedHashSet<>(
+                Arrays.asList(new Vec3i(0, -1, 0), new Vec3i(1, 0, 0), new Vec3i(0, 0, -1), new Vec3i(0, 0, 1), new Vec3i(-1, 0, 0), new Vec3i(0, 1, 0))
+        );
+        caveOffsetsLarge = new LinkedHashSet<>(
+                Arrays.asList(
+                        new Vec3i(0, -2, 0),
+                        new Vec3i(1, -1, 0),
+                        new Vec3i(0, -1, -1),
+                        new Vec3i(0, -1, 0),
+                        new Vec3i(0, -1, 1),
+                        new Vec3i(-1, -1, 0),
+                        new Vec3i(2, 0, 0),
+                        new Vec3i(0, 0, 2),
+                        new Vec3i(0, 0, -2),
+                        new Vec3i(-2, 0, 0),
+                        new Vec3i(1, 0, -1),
+                        new Vec3i(1, 0, 0),
+                        new Vec3i(1, 0, 1),
+                        new Vec3i(0, 0, -1),
+                        new Vec3i(0, 0, 1),
+                        new Vec3i(-1, 0, -1),
+                        new Vec3i(-1, 0, 0),
+                        new Vec3i(-1, 0, 1),
+                        new Vec3i(1, 1, 0),
+                        new Vec3i(0, 1, -1),
+                        new Vec3i(0, 1, 0),
+                        new Vec3i(0, 1, 1),
+                        new Vec3i(-1, 1, 0),
+                        new Vec3i(0, 2, 0)
+                )
+        );
+    }
+
     public final CopyOnWriteArraySet<BlockPos> trackedBlocks = new CopyOnWriteArraySet<>();
     public final CopyOnWriteArraySet<BlockPos> pendingBlocks = new CopyOnWriteArraySet<>();
     public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"SOFT", "FULL"});
@@ -61,6 +97,10 @@ public class Xray extends Module {
     public final BooleanProperty canesTracers = new BooleanProperty("canes-tracers", false);
     public final BooleanProperty warts = new BooleanProperty("warts", false);
     public final BooleanProperty wartsTracers = new BooleanProperty("warts-tracers", false);
+
+    public Xray() {
+        super("Xray", "Xray", Category.RENDER, 0, false, false);
+    }
 
     private void renderOreHighlight(BlockPos blockPos, int blockId, Vec3 viewVector) {
         if (mc.thePlayer.getDistance(blockPos.getX(), blockPos.getY(), blockPos.getZ()) <= this.range.getValue().doubleValue()) {
@@ -145,10 +185,6 @@ public class Xray extends Module {
         } else {
             return false;
         }
-    }
-
-    public Xray() {
-        super("Xray","Xray",Category.RENDER,0,false,false);
     }
 
     public boolean shouldRenderSide(int blockId) {
@@ -324,40 +360,5 @@ public class Xray extends Module {
         if (this.isEnabled() && mc.renderGlobal != null) {
             mc.renderGlobal.loadRenderers();
         }
-    }
-
-    static {
-        xrayBlocks = new LinkedHashSet<>(Arrays.asList(56, 14, 15, 16, 73, 74, 21, 129, 52, 83, 115));
-        caveOffsetsSmall = new LinkedHashSet<>(
-                Arrays.asList(new Vec3i(0, -1, 0), new Vec3i(1, 0, 0), new Vec3i(0, 0, -1), new Vec3i(0, 0, 1), new Vec3i(-1, 0, 0), new Vec3i(0, 1, 0))
-        );
-        caveOffsetsLarge = new LinkedHashSet<>(
-                Arrays.asList(
-                        new Vec3i(0, -2, 0),
-                        new Vec3i(1, -1, 0),
-                        new Vec3i(0, -1, -1),
-                        new Vec3i(0, -1, 0),
-                        new Vec3i(0, -1, 1),
-                        new Vec3i(-1, -1, 0),
-                        new Vec3i(2, 0, 0),
-                        new Vec3i(0, 0, 2),
-                        new Vec3i(0, 0, -2),
-                        new Vec3i(-2, 0, 0),
-                        new Vec3i(1, 0, -1),
-                        new Vec3i(1, 0, 0),
-                        new Vec3i(1, 0, 1),
-                        new Vec3i(0, 0, -1),
-                        new Vec3i(0, 0, 1),
-                        new Vec3i(-1, 0, -1),
-                        new Vec3i(-1, 0, 0),
-                        new Vec3i(-1, 0, 1),
-                        new Vec3i(1, 1, 0),
-                        new Vec3i(0, 1, -1),
-                        new Vec3i(0, 1, 0),
-                        new Vec3i(0, 1, 1),
-                        new Vec3i(-1, 1, 0),
-                        new Vec3i(0, 2, 0)
-                )
-        );
     }
 }

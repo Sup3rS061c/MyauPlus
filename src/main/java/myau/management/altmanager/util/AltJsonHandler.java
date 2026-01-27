@@ -1,32 +1,23 @@
 package myau.management.altmanager.util;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
+import com.google.gson.*;
 import myau.management.altmanager.Alt;
 import myau.management.altmanager.AltManagerGui;
 
+import java.io.*;
+
 public class AltJsonHandler {
-	public static File ROOT_DIR = new File("config/MyauPLus");
+    public static File ROOT_DIR = new File("config/MyauPlus");
     public static File alts = new File(ROOT_DIR, "alts.json");
     public static Gson prettyGson = new GsonBuilder().setPrettyPrinting().create();
     public static JsonParser jsonParser = new JsonParser();
-    
+
     public static void start() {
-        if (!ROOT_DIR.exists()) {ROOT_DIR.mkdirs();}
+        if (!ROOT_DIR.exists()) {
+            ROOT_DIR.mkdirs();
+        }
     }
-    
+
     public static void saveAlts() {
         try {
             JsonObject json = new JsonObject();
@@ -57,7 +48,7 @@ public class AltJsonHandler {
             e.printStackTrace();
         }
     }
-    
+
     public static void loadAlts() {
         try {
             if (!alts.exists()) {

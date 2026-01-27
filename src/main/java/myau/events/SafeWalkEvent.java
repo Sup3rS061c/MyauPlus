@@ -1,7 +1,11 @@
 package myau.events;
 
+import lombok.Getter;
+import lombok.Setter;
 import myau.event.events.Event;
 
+@Setter
+@Getter
 public class SafeWalkEvent implements Event {
     private boolean safeWalk;
 
@@ -9,11 +13,4 @@ public class SafeWalkEvent implements Event {
         this.safeWalk = safeWalk;
     }
 
-    public boolean isSafeWalk() {
-        return this.safeWalk;
-    }
-
-    public void setSafeWalk(boolean safeWalk) {
-        this.safeWalk = safeWalk;
-    }
 }

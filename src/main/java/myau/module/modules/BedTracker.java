@@ -43,17 +43,6 @@ import java.util.stream.Collectors;
 
 public class BedTracker extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private final ScheduledExecutorService executor;
-    private final LinkedHashMap<String, Long> alertCooldowns;
-    private final LinkedHashSet<EntityEnderPearl> trackedPearls;
-    private final LinkedHashSet<String> whitelistedPlayers;
-    private final Color wBed;
-    private final Color rBed;
-    private final Color yBed;
-    private final Color gBed;
-    private BlockPos bedPos;
-    private long lastMarcoTime;
-    private boolean waiting;
     public final BooleanProperty alerts;
     public final IntProperty alertRange;
     public final BooleanProperty alertOnPearl;
@@ -71,32 +60,17 @@ public class BedTracker extends Module {
     public final IntProperty hudOffY;
     public final FloatProperty hudScale;
     public final BooleanProperty hudShadow;
-
-    private void playAlertSound() {
-        switch (this.alertSound.getValue()) {
-            case 1:
-                SoundUtil.playSound("mob.cat.meow");
-                break;
-            case 2:
-                SoundUtil.playSound("random.anvil_land");
-        }
-    }
-
-    private Color getHudColor(int distance) {
-        if (distance < 0) {
-            return this.wBed;
-        } else if (distance <= 100) {
-            return this.gBed;
-        } else if (distance <= 114) {
-            return ColorUtil.interpolate((float) (114 - distance) / 14.0F, this.yBed, this.gBed);
-        } else {
-            return distance <= 128 ? ColorUtil.interpolate((float) (128 - distance) / 14.0F, this.rBed, this.yBed) : this.rBed;
-        }
-    }
-
-    private boolean isBed(BlockPos blockPos) {
-        return blockPos != null && mc.theWorld.getBlockState(blockPos).getBlock() == Blocks.bed;
-    }
+    private final ScheduledExecutorService executor;
+    private final LinkedHashMap<String, Long> alertCooldowns;
+    private final LinkedHashSet<EntityEnderPearl> trackedPearls;
+    private final LinkedHashSet<String> whitelistedPlayers;
+    private final Color wBed;
+    private final Color rBed;
+    private final Color yBed;
+    private final Color gBed;
+    private BlockPos bedPos;
+    private long lastMarcoTime;
+    private boolean waiting;
 
     public BedTracker() {
         super("BedTracker", "Tracks bed status and alerts you.", Category.RENDER, 0, false, true);
@@ -128,6 +102,32 @@ public class BedTracker extends Module {
         this.hudOffY = new IntProperty("hud-offset-y", 2, 0, 255, this.hud::getValue);
         this.hudScale = new FloatProperty("hud-scale", 1.0F, 0.5F, 1.5F, this.hud::getValue);
         this.hudShadow = new BooleanProperty("hud-shadow", true, this.hud::getValue);
+    }
+
+    private void playAlertSound() {
+        switch (this.alertSound.getValue()) {
+            case 1:
+                SoundUtil.playSound("mob.cat.meow");
+                break;
+            case 2:
+                SoundUtil.playSound("random.anvil_land");
+        }
+    }
+
+    private Color getHudColor(int distance) {
+        if (distance < 0) {
+            return this.wBed;
+        } else if (distance <= 100) {
+            return this.gBed;
+        } else if (distance <= 114) {
+            return ColorUtil.interpolate((float) (114 - distance) / 14.0F, this.yBed, this.gBed);
+        } else {
+            return distance <= 128 ? ColorUtil.interpolate((float) (128 - distance) / 14.0F, this.rBed, this.yBed) : this.rBed;
+        }
+    }
+
+    private boolean isBed(BlockPos blockPos) {
+        return blockPos != null && mc.theWorld.getBlockState(blockPos).getBlock() == Blocks.bed;
     }
 
     @EventTarget

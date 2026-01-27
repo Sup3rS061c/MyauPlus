@@ -1,5 +1,8 @@
 package myau.module;
 
+import lombok.Getter;
+
+@Getter
 public enum Category {
     COMBAT("Combat"),
     MOVEMENT("Movement"),
@@ -14,7 +17,4 @@ public enum Category {
         this.name = name;
     }
 
-    public String getName() {
-        return name;
-    }
 }

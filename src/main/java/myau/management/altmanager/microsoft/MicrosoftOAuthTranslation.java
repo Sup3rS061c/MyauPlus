@@ -1,5 +1,9 @@
 package myau.management.altmanager.microsoft;
 
+import com.google.gson.Gson;
+import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
+
 import java.awt.*;
 import java.io.*;
 import java.net.*;
@@ -10,39 +14,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
-import com.google.gson.Gson;
-import com.google.gson.annotations.Expose;
-import com.google.gson.annotations.SerializedName;
-
 public class MicrosoftOAuthTranslation {
-
-    static ExecutorService executor = Executors.newCachedThreadPool();
-
-    public static class LoginData {
-        public String mcToken;
-        public String newRefreshToken;
-        public String uuid, username;
-        public String errorMessage;
-
-        public LoginData() {
-        }
-
-        public LoginData(String mcToken, String newRefreshToken, String uuid, String username) {
-            this.mcToken = mcToken;
-            this.newRefreshToken = newRefreshToken;
-            this.uuid = uuid;
-            this.username = username;
-        }
-
-        public boolean isGood() {
-            return mcToken != null && errorMessage == null;
-        }
-    }
 
     private static final String CLIENT_ID = "9fbc7315-7200-4b2b-a655-bb38c865da17";
     private static final String CLIENT_SECRET = "Bzn8Q~YryydJsydgnnxHgJq.NM3Oo4.AEEohLbBb";
     private static final int PORT = 8247;
-
+    static ExecutorService executor = Executors.newCachedThreadPool();
+    static Gson gson = new Gson();
     private static SimpleHttpServer server;
     private static Consumer<String> callback;
 
@@ -73,11 +51,9 @@ public class MicrosoftOAuthTranslation {
         browse(authUrl);
     }
 
-    static Gson gson = new Gson();
-
     public static LoginData login(String refreshToken) {
         System.out.println("Logging in with refresh token...");
-        
+
         if (refreshToken == null || refreshToken.isEmpty()) {
             System.err.println("No refresh token provided");
             LoginData result = new LoginData();
@@ -87,10 +63,10 @@ public class MicrosoftOAuthTranslation {
 
         try {
             System.out.println("Refreshing access token...");
-            String tokenRequest = "client_id=" + CLIENT_ID + 
+            String tokenRequest = "client_id=" + CLIENT_ID +
                     "&client_secret=" + URLEncoder.encode(CLIENT_SECRET, StandardCharsets.UTF_8.name()) +
-                    "&refresh_token=" + URLEncoder.encode(refreshToken, StandardCharsets.UTF_8.name()) + 
-                    "&grant_type=refresh_token" + 
+                    "&refresh_token=" + URLEncoder.encode(refreshToken, StandardCharsets.UTF_8.name()) +
+                    "&grant_type=refresh_token" +
                     "&redirect_uri=http://localhost:" + PORT;
 
             String tokenResponse = postExternal("https://login.live.com/oauth20_token.srf", tokenRequest, false);
@@ -133,8 +109,8 @@ public class MicrosoftOAuthTranslation {
             }
 
             XblXstsResponse xblRes = gson.fromJson(xblResponse, XblXstsResponse.class);
-            if (xblRes == null || xblRes.Token == null || xblRes.DisplayClaims == null || 
-                xblRes.DisplayClaims.xui == null || xblRes.DisplayClaims.xui.length == 0) {
+            if (xblRes == null || xblRes.Token == null || xblRes.DisplayClaims == null ||
+                    xblRes.DisplayClaims.xui == null || xblRes.DisplayClaims.xui.length == 0) {
                 System.err.println("Invalid XBL response: " + xblResponse);
                 LoginData result = new LoginData();
                 result.errorMessage = "Invalid XBL response";
@@ -278,10 +254,155 @@ public class MicrosoftOAuthTranslation {
         System.out.println("Local server stopped");
     }
 
+    private static void handleCode(String code) {
+        System.out.println("Exchanging code for token...");
+
+        try {
+            String tokenRequest = "client_id=" + CLIENT_ID +
+                    "&client_secret=" + URLEncoder.encode(CLIENT_SECRET, StandardCharsets.UTF_8.name()) +
+                    "&code=" + URLEncoder.encode(code, StandardCharsets.UTF_8.name()) +
+                    "&grant_type=authorization_code" +
+                    "&redirect_uri=http://localhost:" + PORT;
+
+            String response = postExternal("https://login.live.com/oauth20_token.srf", tokenRequest, false);
+
+            if (response == null) {
+                System.err.println("Failed to exchange code for token - null response");
+                if (callback != null) callback.accept(null);
+                return;
+            }
+
+            System.out.println("Token exchange response: " + response);
+            AuthTokenResponse res = gson.fromJson(response, AuthTokenResponse.class);
+            if (res == null || res.refresh_token == null) {
+                if (res != null && res.error != null) {
+                    System.err.println("Token exchange error: " + res.error + " - " + res.error_description);
+                }
+                System.err.println("Invalid token exchange response");
+                if (callback != null) callback.accept(null);
+            } else {
+                System.out.println("Successfully obtained refresh token");
+                if (callback != null) callback.accept(res.refresh_token);
+            }
+        } catch (Exception e) {
+            System.err.println("Error in handleCode: " + e.getMessage());
+            e.printStackTrace();
+            if (callback != null) callback.accept(null);
+        }
+    }
+
+    private static String postExternal(String url, String post, boolean json) {
+        try {
+            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+            connection.setRequestMethod("POST");
+            connection.setDoOutput(true);
+            connection.setConnectTimeout(30000);
+            connection.setReadTimeout(30000);
+
+            connection.addRequestProperty("User-Agent", "Mozilla/5.0");
+            connection.addRequestProperty("Content-Type", json ? "application/json" : "application/x-www-form-urlencoded");
+            connection.addRequestProperty("Accept", "application/json");
+
+            byte[] out = post.getBytes(StandardCharsets.UTF_8);
+            connection.setFixedLengthStreamingMode(out.length);
+
+            System.out.println("Sending POST to: " + url);
+            try (OutputStream os = connection.getOutputStream()) {
+                os.write(out);
+            }
+
+            int responseCode = connection.getResponseCode();
+            System.out.println("Response code: " + responseCode);
+
+            InputStream stream = responseCode < 400 ? connection.getInputStream() : connection.getErrorStream();
+
+            if (stream == null) {
+                System.err.println("No response stream");
+                return null;
+            }
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                String responseBody = response.toString();
+                if (responseCode >= 400) {
+                    System.err.println("HTTP Error " + responseCode + ": " + responseBody);
+                }
+                return responseBody;
+            }
+        } catch (Exception e) {
+            System.err.println("HTTP POST error for " + url + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private static String getBearerResponse(String url, String bearer) {
+        try {
+            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+            connection.setConnectTimeout(30000);
+            connection.setReadTimeout(30000);
+            connection.addRequestProperty("User-Agent", "Mozilla/5.0");
+            connection.addRequestProperty("Authorization", "Bearer " + bearer);
+            connection.addRequestProperty("Accept", "application/json");
+
+            int responseCode = connection.getResponseCode();
+            System.out.println("Bearer request to " + url + " - Response: " + responseCode);
+
+            InputStream stream = responseCode == 200 ? connection.getInputStream() : connection.getErrorStream();
+
+            if (stream == null) {
+                System.err.println("No response stream for bearer request");
+                return null;
+            }
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                String responseBody = response.toString();
+                if (responseCode != 200) {
+                    System.err.println("Bearer request failed: " + responseBody);
+                }
+                return responseBody;
+            }
+        } catch (Exception e) {
+            System.err.println("Bearer request error for " + url + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static class LoginData {
+        public String mcToken;
+        public String newRefreshToken;
+        public String uuid, username;
+        public String errorMessage;
+
+        public LoginData() {
+        }
+
+        public LoginData(String mcToken, String newRefreshToken, String uuid, String username) {
+            this.mcToken = mcToken;
+            this.newRefreshToken = newRefreshToken;
+            this.uuid = uuid;
+            this.username = username;
+        }
+
+        public boolean isGood() {
+            return mcToken != null && errorMessage == null;
+        }
+    }
+
     private static class SimpleHttpServer {
+        private final int port;
         private ServerSocket serverSocket;
         private boolean running;
-        private final int port;
 
         public SimpleHttpServer(int port) {
             this.port = port;
@@ -420,130 +541,6 @@ public class MicrosoftOAuthTranslation {
         }
     }
 
-    private static void handleCode(String code) {
-        System.out.println("Exchanging code for token...");
-        
-        try {
-            String tokenRequest = "client_id=" + CLIENT_ID + 
-                    "&client_secret=" + URLEncoder.encode(CLIENT_SECRET, StandardCharsets.UTF_8.name()) +
-                    "&code=" + URLEncoder.encode(code, StandardCharsets.UTF_8.name()) + 
-                    "&grant_type=authorization_code" + 
-                    "&redirect_uri=http://localhost:" + PORT;
-
-            String response = postExternal("https://login.live.com/oauth20_token.srf", tokenRequest, false);
-
-            if (response == null) {
-                System.err.println("Failed to exchange code for token - null response");
-                if (callback != null) callback.accept(null);
-                return;
-            }
-
-            System.out.println("Token exchange response: " + response);
-            AuthTokenResponse res = gson.fromJson(response, AuthTokenResponse.class);
-            if (res == null || res.refresh_token == null) {
-                if (res != null && res.error != null) {
-                    System.err.println("Token exchange error: " + res.error + " - " + res.error_description);
-                }
-                System.err.println("Invalid token exchange response");
-                if (callback != null) callback.accept(null);
-            } else {
-                System.out.println("Successfully obtained refresh token");
-                if (callback != null) callback.accept(res.refresh_token);
-            }
-        } catch (Exception e) {
-            System.err.println("Error in handleCode: " + e.getMessage());
-            e.printStackTrace();
-            if (callback != null) callback.accept(null);
-        }
-    }
-
-    private static String postExternal(String url, String post, boolean json) {
-        try {
-            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setRequestMethod("POST");
-            connection.setDoOutput(true);
-            connection.setConnectTimeout(30000);
-            connection.setReadTimeout(30000);
-            
-            connection.addRequestProperty("User-Agent", "Mozilla/5.0");
-            connection.addRequestProperty("Content-Type", json ? "application/json" : "application/x-www-form-urlencoded");
-            connection.addRequestProperty("Accept", "application/json");
-            
-            byte[] out = post.getBytes(StandardCharsets.UTF_8);
-            connection.setFixedLengthStreamingMode(out.length);
-            
-            System.out.println("Sending POST to: " + url);
-            try (OutputStream os = connection.getOutputStream()) {
-                os.write(out);
-            }
-            
-            int responseCode = connection.getResponseCode();
-            System.out.println("Response code: " + responseCode);
-            
-            InputStream stream = responseCode < 400 ? connection.getInputStream() : connection.getErrorStream();
-            
-            if (stream == null) {
-                System.err.println("No response stream");
-                return null;
-            }
-            
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-                String responseBody = response.toString();
-                if (responseCode >= 400) {
-                    System.err.println("HTTP Error " + responseCode + ": " + responseBody);
-                }
-                return responseBody;
-            }
-        } catch (Exception e) {
-            System.err.println("HTTP POST error for " + url + ": " + e.getMessage());
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    private static String getBearerResponse(String url, String bearer) {
-        try {
-            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setConnectTimeout(30000);
-            connection.setReadTimeout(30000);
-            connection.addRequestProperty("User-Agent", "Mozilla/5.0");
-            connection.addRequestProperty("Authorization", "Bearer " + bearer);
-            connection.addRequestProperty("Accept", "application/json");
-            
-            int responseCode = connection.getResponseCode();
-            System.out.println("Bearer request to " + url + " - Response: " + responseCode);
-            
-            InputStream stream = responseCode == 200 ? connection.getInputStream() : connection.getErrorStream();
-            
-            if (stream == null) {
-                System.err.println("No response stream for bearer request");
-                return null;
-            }
-            
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-                String responseBody = response.toString();
-                if (responseCode != 200) {
-                    System.err.println("Bearer request failed: " + responseBody);
-                }
-                return responseBody;
-            }
-        } catch (Exception e) {
-            System.err.println("Bearer request error for " + url + ": " + e.getMessage());
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     private static class AuthTokenResponse {
         @Expose
         @SerializedName("access_token")
@@ -591,12 +588,6 @@ public class MicrosoftOAuthTranslation {
         @SerializedName("items")
         public Item[] items;
 
-        private static class Item {
-            @Expose
-            @SerializedName("name")
-            public String name;
-        }
-
         private boolean hasGameOwnership() {
             if (items == null) return false;
             for (Item item : items) {
@@ -605,6 +596,12 @@ public class MicrosoftOAuthTranslation {
                 }
             }
             return false;
+        }
+
+        private static class Item {
+            @Expose
+            @SerializedName("name")
+            public String name;
         }
     }
 

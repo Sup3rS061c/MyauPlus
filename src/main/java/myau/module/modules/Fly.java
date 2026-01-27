@@ -13,9 +13,9 @@ import net.minecraft.client.Minecraft;
 
 public class Fly extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private double verticalMotion = 0.0;
     public final FloatProperty hSpeed = new FloatProperty("horizontal-speed", 1.0F, 0.0F, 100.0F);
     public final FloatProperty vSpeed = new FloatProperty("vertical-speed", 1.0F, 0.0F, 100.0F);
+    private double verticalMotion = 0.0;
 
     public Fly() {
         super("Fly", "Allows you to fly.", Category.MOVEMENT, 0, false, false);

@@ -36,11 +36,6 @@ import java.util.stream.Collectors;
 
 public class LagRange extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private int tickIndex = -1;
-    private long delayCounter = 0L;
-    private boolean hasTarget = false;
-    private Vec3 lastPosition = null;
-    private Vec3 currentPosition = null;
     public final IntProperty delay = new IntProperty("delay", 150, 0, 1000);
     public final FloatProperty range = new FloatProperty("range", 10.0F, 3.0F, 100.0F);
     public final BooleanProperty weaponsOnly = new BooleanProperty("weapons-only", true);
@@ -48,6 +43,15 @@ public class LagRange extends Module {
     public final BooleanProperty botCheck = new BooleanProperty("bot-check", true);
     public final BooleanProperty teams = new BooleanProperty("teams", true);
     public final ModeProperty showPosition = new ModeProperty("show-position", 0, new String[]{"NONE", "DEFAULT", "HUD"});
+    private int tickIndex = -1;
+    private long delayCounter = 0L;
+    private boolean hasTarget = false;
+    private Vec3 lastPosition = null;
+    private Vec3 currentPosition = null;
+
+    public LagRange() {
+        super("LagRange", "Use lag to make more range to attack others", Category.PLAYER, 0, false, false);
+    }
 
     private boolean isValidTarget(EntityPlayer entityPlayer) {
         if (entityPlayer != mc.thePlayer && entityPlayer != mc.thePlayer.ridingEntity) {
@@ -76,10 +80,6 @@ public class LagRange extends Module {
         } else {
             return false;
         }
-    }
-
-    public LagRange() {
-        super("LagRange","Use lag to make more range to attack others",Category.PLAYER,0,false,false);
     }
 
     @EventTarget(Priority.LOW)

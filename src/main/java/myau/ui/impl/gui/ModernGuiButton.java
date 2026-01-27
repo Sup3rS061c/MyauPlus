@@ -2,18 +2,16 @@ package myau.ui.impl.gui;
 
 import myau.util.AnimationUtil;
 import myau.util.RenderUtil;
-import myau.util.font.FontManager; // 导入字体管理器
+import myau.util.font.FontManager;
+import myau.util.font.impl.FontRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
-import java.awt.Color;
+
+import java.awt.*;
 
 public class ModernGuiButton extends GuiButton {
-
-    private static final int BG_NORMAL = new Color(0, 0, 0, 100).getRGB();
-    private static final int BG_HOVER = new Color(20, 20, 20, 200).getRGB();
-    private static final int OUTLINE_NORMAL = new Color(255, 255, 255, 150).getRGB();
-    private static final int OUTLINE_HOVER = new Color(255, 255, 255, 200).getRGB();
 
     private float hoverProgress = 0.0f;
 
@@ -27,10 +25,8 @@ public class ModernGuiButton extends GuiButton {
             this.hovered = mouseX >= this.xPosition && mouseY >= this.yPosition
                     && mouseX < this.xPosition + this.width && mouseY < this.yPosition + this.height;
 
-            // 平滑动画
             hoverProgress = AnimationUtil.animate(this.hovered ? 1.0f : 0.0f, hoverProgress, 0.25f, 1.0f);
 
-            // 混合颜色
             int bgNormal = new Color(20, 20, 20, 120).getRGB();
             int bgHover = new Color(40, 40, 45, 200).getRGB();
             int outlineNormal = new Color(255, 255, 255, 60).getRGB();
@@ -43,16 +39,32 @@ public class ModernGuiButton extends GuiButton {
             GlStateManager.enableBlend();
             GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
 
-            // 绘制
             RenderUtil.drawRoundedRect(this.xPosition, this.yPosition, this.width, this.height, 5.0f, finalBg, true, true, true, true);
             RenderUtil.drawRoundedRectOutline(this.xPosition, this.yPosition, this.width, this.height, 5.0f, 1.0f, finalOutline, true, true, true, true);
 
-            // 字体绘制
             if (FontManager.productSans20 != null) {
-                // 精确居中：y + (height / 2) - (fontHeight / 2)
-                // 大部分自定义字体渲染器实际上是以顶部为基准，有些是基线，需要微调
-                float fontY = (float) (this.yPosition + (this.height - FontManager.productSans20.getHeight()) / 2.0f + 1.5f);
-                FontManager.productSans20.drawCenteredString(this.displayString, this.xPosition + this.width / 2.0f, fontY, finalText);
+                FontRenderer fr = FontManager.productSans20;
+                ScaledResolution sr = new ScaledResolution(mc);
+
+                GlStateManager.pushMatrix();
+
+                float baseScale = 9.0f / (float) fr.getHeight();
+
+                float guiScaleCorrection = (float) sr.getScaleFactor() / 2.0f;
+
+                float finalScale = baseScale * guiScaleCorrection;
+
+                float centerX = this.xPosition + this.width / 2.0f;
+                float centerY = this.yPosition + this.height / 2.0f;
+
+                GlStateManager.translate(centerX, centerY, 0);
+                GlStateManager.scale(finalScale, finalScale, 1.0f);
+
+                float fontY = -(float) (fr.getHeight() / 2.0f) + 1.0f;
+
+                fr.drawCenteredString(this.displayString, 0, fontY, finalText);
+
+                GlStateManager.popMatrix();
             } else {
                 this.drawCenteredString(mc.fontRendererObj, this.displayString,
                         this.xPosition + this.width / 2,
@@ -60,7 +72,7 @@ public class ModernGuiButton extends GuiButton {
                         finalText);
             }
 
-            GlStateManager.color(1, 1, 1, 1); // 重置颜色防止污染后续渲染
+            GlStateManager.color(1, 1, 1, 1);
         }
     }
 }

@@ -20,20 +20,16 @@ package myau.management.altmanager.auth;
 
 import java.io.IOException;
 
-public class MicrosoftAuthenticationException extends Exception
-{
-    public MicrosoftAuthenticationException(String message)
-    {
+public class MicrosoftAuthenticationException extends Exception {
+    public MicrosoftAuthenticationException(String message) {
         super(message);
     }
 
-    public MicrosoftAuthenticationException(IOException cause)
-    {
+    public MicrosoftAuthenticationException(IOException cause) {
         super("I/O exception thrown during Microsoft HTTP requests", cause);
     }
 
-    public MicrosoftAuthenticationException(Throwable cause)
-    {
+    public MicrosoftAuthenticationException(Throwable cause) {
         super(cause);
     }
 }

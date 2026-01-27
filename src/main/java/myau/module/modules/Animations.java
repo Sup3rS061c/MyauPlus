@@ -1,7 +1,8 @@
 package myau.module.modules;
 
 import myau.module.Module;
-import myau.property.properties.*;
+import myau.property.properties.FloatProperty;
+import myau.property.properties.ModeProperty;
 
 public class Animations extends Module {
     public static Animations INSTANCE;

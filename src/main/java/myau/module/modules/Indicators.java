@@ -33,6 +33,10 @@ public class Indicators extends Module {
     public final BooleanProperty pearls = new BooleanProperty("pearls", true);
     public final BooleanProperty arrows = new BooleanProperty("arrows", true);
 
+    public Indicators() {
+        super("Indicators", "", Category.RENDER, 0, false, true);
+    }
+
     private boolean shouldRender(Entity entity) {
         double d = (entity.posX - entity.lastTickPosX) * (Indicators.mc.thePlayer.posX - entity.posX) + (entity.posY - entity.lastTickPosY) * (Indicators.mc.thePlayer.posY + (double) Indicators.mc.thePlayer.getEyeHeight() - entity.posY - (double) entity.height / 2.0) + (entity.posZ - entity.lastTickPosZ) * (Indicators.mc.thePlayer.posZ - entity.posZ);
         if (d == 0.0) {
@@ -77,10 +81,6 @@ public class Indicators extends Module {
             return new Color(0x969696);
         }
         return new Color(-1);
-    }
-
-    public Indicators() {
-        super("Indicators","",Category.RENDER,0,false, true);
     }
 
     @EventTarget

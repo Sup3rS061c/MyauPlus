@@ -11,6 +11,25 @@ import net.minecraft.util.MathHelper;
 public class MoveUtil {
     private static final Minecraft mc = Minecraft.getMinecraft();
 
+    // 新增：检查玩家是否在移动
+    public static boolean isMoving() {
+        return MoveUtil.mc.thePlayer != null &&
+                (MoveUtil.mc.thePlayer.movementInput.moveForward != 0.0f ||
+                        MoveUtil.mc.thePlayer.movementInput.moveStrafe != 0.0f ||
+                        Math.abs(MoveUtil.mc.thePlayer.motionX) > 0.001 ||
+                        Math.abs(MoveUtil.mc.thePlayer.motionZ) > 0.001);
+    }
+
+    // 新增：检查玩家是否在地面上移动
+    public static boolean isMovingOnGround() {
+        return isMoving() && MoveUtil.mc.thePlayer.onGround;
+    }
+
+    // 新增：检查玩家是否在水下移动
+    public static boolean isMovingInLiquid() {
+        return isMoving() && (MoveUtil.mc.thePlayer.isInWater() || MoveUtil.mc.thePlayer.isInLava());
+    }
+
     public static boolean isForwardPressed() {
         if (MoveUtil.mc.gameSettings.keyBindForward.isKeyDown() != MoveUtil.mc.gameSettings.keyBindBack.isKeyDown())
             return true;
@@ -97,12 +116,12 @@ public class MoveUtil {
         return MoveUtil.getSpeed(MoveUtil.mc.thePlayer.motionX, MoveUtil.mc.thePlayer.motionZ);
     }
 
-    public static double getSpeed(double motionX, double motionZ) {
-        return Math.hypot(motionX, motionZ);
-    }
-
     public static void setSpeed(double speed) {
         MoveUtil.setSpeed(speed, MoveUtil.getDirectionYaw());
+    }
+
+    public static double getSpeed(double motionX, double motionZ) {
+        return Math.hypot(motionX, motionZ);
     }
 
     public static void setSpeed(double speed, float yaw) {
@@ -202,5 +221,13 @@ public class MoveUtil {
             MoveUtil.mc.thePlayer.movementInput.moveForward *= 0.3f;
             MoveUtil.mc.thePlayer.movementInput.moveStrafe *= 0.3f;
         }
+    }
+
+    public static double getForwardProperty() {
+        return getForwardValue();
+    }
+
+    public static double getLeftProperty() {
+        return getLeftValue();
     }
 }

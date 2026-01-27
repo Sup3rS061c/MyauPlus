@@ -17,7 +17,7 @@ public class SpeedMine extends Module {
     public final IntProperty delay = new IntProperty("delay", 0, 0, 4);
 
     public SpeedMine() {
-        super("SpeedMine","",Category.WORLD,0,false,false);
+        super("SpeedMine", "", Category.WORLD, 0, false, false);
     }
 
     @EventTarget

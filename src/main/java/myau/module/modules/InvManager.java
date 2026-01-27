@@ -22,9 +22,6 @@ import java.util.LinkedHashSet;
 
 public class InvManager extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private int actionDelay = 0;
-    private int oDelay = 0;
-    private boolean inventoryOpen = false;
     public final IntProperty minDelay = new IntProperty("min-delay", 1, 0, 20);
     public final IntProperty maxDelay = new IntProperty("max-delay", 2, 0, 20);
     public final IntProperty openDelay = new IntProperty("open-delay", 1, 0, 20);
@@ -42,6 +39,13 @@ public class InvManager extends Module {
     public final IntProperty arrowsSlot = new IntProperty("arrows-slot", 7, 0, 9);
     public final IntProperty arrows = new IntProperty("arrows", 64, 1, 256);
     public final BooleanProperty keepArrowsInInventory = new BooleanProperty("keep-arrows-inventory", true);
+    private int actionDelay = 0;
+    private int oDelay = 0;
+    private boolean inventoryOpen = false;
+
+    public InvManager() {
+        super("InvManager", "", Category.PLAYER, 0, false, false);
+    }
 
     private boolean isValidGameMode() {
         GameType gameType = mc.playerController.getCurrentGameType();
@@ -103,10 +107,10 @@ public class InvManager extends Module {
         if (stack == null) return false;
         net.minecraft.item.Item item = stack.getItem();
         return item instanceof net.minecraft.item.ItemSnowball ||
-               item instanceof net.minecraft.item.ItemEgg ||
-               item instanceof net.minecraft.item.ItemEnderPearl ||
-               item instanceof net.minecraft.item.ItemFireball ||
-               item == net.minecraft.init.Items.fire_charge;
+                item instanceof net.minecraft.item.ItemEgg ||
+                item instanceof net.minecraft.item.ItemEnderPearl ||
+                item instanceof net.minecraft.item.ItemFireball ||
+                item == net.minecraft.init.Items.fire_charge;
     }
 
     private boolean isArrowItem(ItemStack stack) {
@@ -153,15 +157,11 @@ public class InvManager extends Module {
         int totalArrows = 0;
         for (int i = 9; i < 36; ++i) {
             ItemStack itemStack = mc.thePlayer.inventory.getStackInSlot(i);
-            if (itemStack != null && this.isArrowItem(itemStack)) {
+            if (this.isArrowItem(itemStack)) {
                 totalArrows += itemStack.stackSize;
             }
         }
         return totalArrows;
-    }
-
-    public InvManager() {
-        super("InvManager","",Category.PLAYER,0,false,false);
     }
 
     @EventTarget
@@ -319,16 +319,16 @@ public class InvManager extends Module {
                                         boolean isThrowable = this.isThrowableItem(stack);
                                         boolean isArrow = this.isArrowItem(stack);
                                         boolean isBow = this.isBowItem(stack);
-                                        
-                                        if (ItemUtil.isNotSpecialItem(stack) || 
-                                            (isBlock && currentBlockCount >= this.blocks.getValue()) ||
-                                            (isThrowable && currentThrowablesCount >= this.throwables.getValue()) ||
-                                            (isArrow && currentArrowsCount >= this.arrows.getValue()) ||
-                                            (isBow && inventoryBowSlot != -1)) { // 只保留一把弓
+
+                                        if (ItemUtil.isNotSpecialItem(stack) ||
+                                                (isBlock && currentBlockCount >= this.blocks.getValue()) ||
+                                                (isThrowable && currentThrowablesCount >= this.throwables.getValue()) ||
+                                                (isArrow && currentArrowsCount >= this.arrows.getValue()) ||
+                                                (isBow && inventoryBowSlot != -1)) { // 只保留一把弓
                                             this.clickSlot(mc.thePlayer.inventoryContainer.windowId, this.convertSlotIndex(i), 1, 4);
                                             return;
                                         }
-                                        
+
                                         if (isBlock) {
                                             currentBlockCount += stack.stackSize;
                                         } else if (isThrowable) {

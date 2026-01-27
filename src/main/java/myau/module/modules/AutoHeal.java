@@ -21,12 +21,16 @@ import net.minecraft.potion.Potion;
 
 public class AutoHeal extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private final TimerUtil timer = new TimerUtil();
-    private boolean shouldHeal = false;
-    private int prevSlot = -1;
     public final PercentProperty health = new PercentProperty("health", 35);
     public final IntProperty delay = new IntProperty("delay", 4000, 0, 5000);
     public final BooleanProperty regenCheck = new BooleanProperty("regen-check", false);
+    private final TimerUtil timer = new TimerUtil();
+    private boolean shouldHeal = false;
+    private int prevSlot = -1;
+
+    public AutoHeal() {
+        super("AutoHeal", "Auto Gapple/Soup/Golden Head", Category.PLAYER, 0, false, false);
+    }
 
     private int findHealingItem() {
         for (int i = 0; i < 9; i++) {
@@ -49,10 +53,6 @@ public class AutoHeal extends Module {
         return this.regenCheck.getValue() && mc.thePlayer.isPotionActive(Potion.regeneration);
     }
 
-    public AutoHeal() {
-        super("AutoHeal", "Auto Gapple/Soup/Golden Head",Category.PLAYER,0,false,false);
-    }
-
     public boolean isSwitching() {
         return this.prevSlot != -1;
     }
@@ -69,7 +69,7 @@ public class AutoHeal extends Module {
                     if (this.shouldHeal
                             && precent
                             && !this.hasRegenEffect()
-                            && this.timer.hasTimeElapsed(this.delay.getValue().intValue())) {
+                            && this.timer.hasTimeElapsed(this.delay.getValue())) {
                         int slot = this.findHealingItem();
                         if (slot != -1) {
                             this.prevSlot = mc.thePlayer.inventory.currentItem;

@@ -23,7 +23,7 @@ public class MoreKB extends Module {
     private EntityLivingBase target;
 
     public MoreKB() {
-        super("MoreKB","Boost your kb.", Category.COMBAT,0,false,false);
+        super("MoreKB", "Boost your kb.", Category.COMBAT, 0, false, false);
     }
 
 

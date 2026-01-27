@@ -2,7 +2,6 @@ package myau.module.modules;
 
 import myau.Myau;
 import myau.enums.BlinkModules;
-import myau.enums.ChatColors;
 import myau.event.EventTarget;
 import myau.events.Render2DEvent;
 import myau.events.TickEvent;
@@ -15,80 +14,116 @@ import myau.util.ColorUtil;
 import myau.util.RenderUtil;
 import myau.util.font.FontManager;
 import myau.util.font.impl.FontRenderer;
+import myau.util.shader.BlurShader;
+import myau.util.shader.ShadowShader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.shader.Framebuffer;
+import org.lwjgl.opengl.EXTFramebufferObject;
+import org.lwjgl.opengl.EXTPackedDepthStencil;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class HUD extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-
-    private final Map<Module, Float> animationMap = new HashMap<>();
-
-    public final ModeProperty fontMode = new ModeProperty("font", 1, new String[]{"MINECRAFT", "PRODUCT_SANS", "REGULAR", "TENACITY", "VISION", "NBP_INFORMA", "TAHOMA_BOLD"});
-    public final ModeProperty animationMode = new ModeProperty("animation", 1, new String[]{"NONE", "SLIDE", "SCALE", "FADE", "ZIPPER"});
-
-    // 速度建议范围调整：0.5 - 5.0，默认 2.0 比较舒服
-    public final FloatProperty animationSpeed = new FloatProperty("anim-speed", 2.0F, 0.1F, 10.0F);
-
-    public final ModeProperty colorMode = new ModeProperty("color", 3, new String[]{"RAINBOW", "CHROMA", "ASTOLFO", "CUSTOM1", "CUSTOM12", "CUSTOM123"});
-    public final FloatProperty colorSpeed = new FloatProperty("color-speed", 1.0F, 0.5F, 1.5F);
-    public final PercentProperty colorSaturation = new PercentProperty("color-saturation", 50);
-    public final PercentProperty colorBrightness = new PercentProperty("color-brightness", 100);
-    public final ColorProperty custom1 = new ColorProperty("custom-color-1", Color.WHITE.getRGB(), () -> this.colorMode.getValue() == 3 || this.colorMode.getValue() == 4 || this.colorMode.getValue() == 5);
-    public final ColorProperty custom2 = new ColorProperty("custom-color-2", Color.WHITE.getRGB(), () -> this.colorMode.getValue() == 4 || this.colorMode.getValue() == 5);
-    public final ColorProperty custom3 = new ColorProperty("custom-color-3", Color.WHITE.getRGB(), () -> this.colorMode.getValue() == 5);
-    public final ModeProperty posX = new ModeProperty("position-x", 1, new String[]{"LEFT", "RIGHT"});
-    public final ModeProperty posY = new ModeProperty("position-y", 0, new String[]{"TOP", "BOTTOM"});
-    public final IntProperty offsetX = new IntProperty("offset-x", 2, 0, 255);
-    public final IntProperty offsetY = new IntProperty("offset-y", 2, 0, 255);
+    public final ModeProperty fontMode = new ModeProperty("font", 1, new String[]{"Minecraft", "Product_Sans", "Regular", "Tenacity", "Vision", "NBP_INFORMA", "Tahoma_Bold", "Nunito_Bold", "HarmonyOS_Sans"});
+    public final ModeProperty arraylistMode = new ModeProperty("position", 1, new String[]{"Left", "Right"});
+    public final IntProperty offsetX = new IntProperty("offset-x", 6, 0, 255);
+    public final IntProperty offsetY = new IntProperty("offset-y", 6, 0, 255);
     public final FloatProperty scale = new FloatProperty("scale", 1.0F, 0.5F, 1.5F);
-    public final PercentProperty background = new PercentProperty("background", 25);
-    public final BooleanProperty showBar = new BooleanProperty("bar", true);
-    public final BooleanProperty shadow = new BooleanProperty("shadow", true);
-    public final BooleanProperty suffixes = new BooleanProperty("suffixes", true);
-    public final BooleanProperty lowerCase = new BooleanProperty("lower-case", false);
+    public final FloatProperty textHeight = new FloatProperty("line-height", 11F, 8F, 20F);
+    public final FloatProperty bgPadding = new FloatProperty("bg-padding", 2.0F, 0.0F, 10.0F);
+    public final ModeProperty animation = new ModeProperty("animation", 0, new String[]{"Slide", "Smooth"});
+    public final FloatProperty animSpeed = new FloatProperty("anim-speed", 2.0F, 0.1F, 10.0F);
+    public final ModeProperty colorMode = new ModeProperty("text-color", 1, new String[]{"Static", "Fade", "Breathe", "Rainbow", "Astolfo"});
+    public final ColorProperty custom1 = new ColorProperty("color-1", new Color(0, 111, 255).getRGB(), () -> colorMode.getValue() <= 2);
+    public final ColorProperty custom2 = new ColorProperty("color-2", new Color(0, 255, 255).getRGB(), () -> colorMode.getValue() == 1 || colorMode.getValue() == 2);
+    public final ColorProperty custom3 = new ColorProperty("color-3", new Color(255, 255, 255).getRGB(), () -> colorMode.getValue() == 2);
+    public final FloatProperty colorSpeed = new FloatProperty("color-speed", 1.0F, 0.1F, 5.0F);
+    public final FloatProperty colorDistance = new FloatProperty("color-dist", 50F, 10F, 100F);
+    public final BooleanProperty shadow = new BooleanProperty("text-shadow", true);
+    public final FloatProperty textYOffset = new FloatProperty("text-y-offset", 0.0F, -5.0F, 5.0F);
+
+    public final BooleanProperty background = new BooleanProperty("background", true);
+    public final BooleanProperty blur = new BooleanProperty("blur", false, background::getValue);
+    public final FloatProperty blurRadius = new FloatProperty("blur-radius", 10.0F, 1.0F, 30.0F, () -> background.getValue() && blur.getValue());
+    public final ColorProperty bgColor = new ColorProperty("bg-color", new Color(0, 0, 0).getRGB(), background::getValue);
+    public final IntProperty bgAlpha = new IntProperty("bg-alpha", 120, 0, 255, background::getValue);
+
+    public final BooleanProperty sidebar = new BooleanProperty("sidebar", true);
+    public final BooleanProperty sidebarSync = new BooleanProperty("bar-sync", true, sidebar::getValue);
+    public final ColorProperty sidebarColor = new ColorProperty("bar-color", new Color(0, 111, 255).getRGB(), () -> sidebar.getValue() && !sidebarSync.getValue());
+    public final FloatProperty sidebarWidth = new FloatProperty("bar-width", 2.0F, 0.5F, 5.0F, sidebar::getValue);
+    public final FloatProperty sidebarHeight = new FloatProperty("bar-height", 1.0F, 0.1F, 5.0F, sidebar::getValue);
+
+    public final BooleanProperty glow = new BooleanProperty("glow", true);
+    public final ModeProperty glowColorMode = new ModeProperty("glow-mode", 1, new String[]{"Sync", "Custom"}, glow::getValue);
+    public final ColorProperty glowCustomColor = new ColorProperty("glow-color", new Color(0, 0, 0).getRGB(), () -> glow.getValue() && glowColorMode.getValue() == 1);
+    public final IntProperty glowAlpha = new IntProperty("glow-alpha", 100, 0, 255, glow::getValue);
+    public final FloatProperty glowRadius = new FloatProperty("glow-radius", 3f, 1f, 30f, glow::getValue);
+
+    public final BooleanProperty tags = new BooleanProperty("tags", true);
+    public final ModeProperty tagsStyle = new ModeProperty("tags-style", 5, new String[]{"[]", "()", "<>", "-", "|", "Space"}, tags::getValue);
+    public final ModeProperty suffixMode = new ModeProperty("suffix-color", 0, new String[]{"Gray", "White", "Color"}, tags::getValue);
+    public final BooleanProperty lowercase = new BooleanProperty("lowercase", false);
+
     public final BooleanProperty chatOutline = new BooleanProperty("chat-outline", true);
     public final BooleanProperty blinkTimer = new BooleanProperty("blink-timer", true);
     public final BooleanProperty toggleSound = new BooleanProperty("toggle-sounds", true);
 
+    private final Map<Module, Float> animationMap = new HashMap<>();
+    private List<Module> sortedModules = new ArrayList<>();
+
     public HUD() {
-        super("HUD", "Heads-up display.", Category.RENDER, 0, true, true);
+        super("HUD", "Highly customizable Arraylist", Category.RENDER, 0, true, true);
     }
 
-    // ... (保留原有的 Font 相关辅助方法: getCustomFont, getFontHeight, getStringWidth, drawString) ...
-    // --- 字体辅助方法 Start ---
     private FontRenderer getCustomFont() {
         switch (fontMode.getValue()) {
-            case 1: if (FontManager.productSans20 != null) return FontManager.productSans20; break;
-            case 2: if (FontManager.regular22 != null) return FontManager.regular22; break;
-            case 3: if (FontManager.tenacity20 != null) return FontManager.tenacity20; break;
-            case 4: if (FontManager.vision20 != null) return FontManager.vision20; break;
-            case 5: if (FontManager.nbpInforma20 != null) return FontManager.nbpInforma20; break;
-            case 6: if (FontManager.tahomaBold20 != null) return FontManager.tahomaBold20; break;
+            case 1:
+                if (FontManager.productSans20 != null) return FontManager.productSans20;
+                break;
+            case 2:
+                if (FontManager.regular22 != null) return FontManager.regular22;
+                break;
+            case 3:
+                if (FontManager.tenacity20 != null) return FontManager.tenacity20;
+                break;
+            case 4:
+                if (FontManager.vision20 != null) return FontManager.vision20;
+                break;
+            case 5:
+                if (FontManager.nbpInforma20 != null) return FontManager.nbpInforma20;
+                break;
+            case 6:
+                if (FontManager.tahomaBold20 != null) return FontManager.tahomaBold20;
+                break;
+            case 7:
+                if (FontManager.nunitoBold20 != null) return FontManager.nunitoBold20;
+                break;
+            case 8:
+                if (FontManager.harmonyOS_Sans20 != null) return FontManager.harmonyOS_Sans20;
+                break;
         }
         return null;
     }
 
     private float getFontHeight() {
         FontRenderer fr = getCustomFont();
-        if (fr != null) return (float) fr.getHeight();
-        return mc.fontRendererObj.FONT_HEIGHT;
+        return fr != null ? (float) fr.getHeight() : mc.fontRendererObj.FONT_HEIGHT;
     }
 
     private float getStringWidth(String text) {
         FontRenderer fr = getCustomFont();
-        if (fr != null) return (float) fr.getStringWidth(text);
-        return mc.fontRendererObj.getStringWidth(text);
+        return fr != null ? (float) fr.getStringWidth(text) : mc.fontRendererObj.getStringWidth(text);
     }
 
     private void drawString(String text, float x, float y, int color, boolean shadow) {
@@ -101,256 +136,372 @@ public class HUD extends Module {
             else mc.fontRendererObj.drawString(text, x, y, color, false);
         }
     }
-    // --- 字体辅助方法 End ---
 
-    // ... (保留 getModuleName, getModuleSuffix, getModuleWidth, calculateStringWidth, getColorCycle, getColor) ...
-    private String getModuleName(Module module) {
-        String moduleName = module.getName();
-        if (this.lowerCase.getValue()) moduleName = moduleName.toLowerCase(Locale.ROOT);
-        return moduleName;
-    }
+    private String getModuleDisplay(Module module) {
+        String name = module.getName();
+        if (lowercase.getValue()) name = name.toLowerCase();
 
-    private String[] getModuleSuffix(Module module) {
-        String[] moduleSuffix = module.getSuffix();
-        if (this.lowerCase.getValue()) {
-            for (int i = 0; i < moduleSuffix.length; i++) moduleSuffix[i] = moduleSuffix[i].toLowerCase();
+        if (!tags.getValue()) return name;
+
+        String suffix = (module.getSuffix() != null && module.getSuffix().length > 0) ? module.getSuffix()[0] : null;
+        if (suffix == null || suffix.isEmpty()) return name;
+
+        if (lowercase.getValue()) suffix = suffix.toLowerCase();
+
+        String tagStr = "";
+
+        String colorCode = "";
+        int suffixColorValue = suffixMode.getValue();
+
+        switch (suffixColorValue) {
+            case 0:
+                colorCode = " §7";
+                break;
+            case 1:
+                colorCode = " §f";
+                break;
+            case 2:
+                colorCode = " ";
+                break;
         }
-        return moduleSuffix;
-    }
 
-    private int getModuleWidth(Module module) {
-        return (int) this.calculateStringWidth(getModuleName(module), getModuleSuffix(module));
-    }
-
-    private float calculateStringWidth(String string, String[] arr) {
-        float width = getStringWidth(string);
-        if (this.suffixes.getValue()) {
-            for (String str : arr) width += 3 + getStringWidth(str);
+        switch (tagsStyle.getValue()) {
+            case 0:
+                tagStr = "[" + suffix + "]";
+                break;
+            case 1:
+                tagStr = "(" + suffix + ")";
+                break;
+            case 2:
+                tagStr = "<" + suffix + ">";
+                break;
+            case 3:
+                tagStr = "- " + suffix;
+                break;
+            case 4:
+                tagStr = "| " + suffix;
+                break;
+            case 5:
+                tagStr = suffix;
+                break;
         }
-        return width;
-    }
-
-    private float getColorCycle(long time, long offset) {
-        long speed = (long) (3000.0 / Math.pow(Math.min(Math.max(0.5F, this.colorSpeed.getValue()), 1.5F), 3.0));
-        return 1.0F - (float) (Math.abs(time - offset * 300L) % speed) / (float) speed;
-    }
-
-    public Color getColor(long time) {
-        return this.getColor(time, 0L);
+        return name + colorCode + tagStr;
     }
 
     public Color getColor(long time, long offset) {
-        Color color = Color.white;
-        switch (this.colorMode.getValue()) {
-            case 0: color = ColorUtil.fromHSB(this.getColorCycle(time, offset), 1.0F, 1.0F); break;
-            case 1: color = ColorUtil.fromHSB(this.getColorCycle(time / 3L, 0L), 1.0F, 1.0F); break;
+        int color = -1;
+        switch (colorMode.getValue()) {
+            case 0:
+                color = custom1.getValue();
+                break;
+            case 1:
+                color = ColorUtil.interpolate(
+                        0.5f + 0.5f * (float) Math.sin((time - offset * 10) / (1000.0 / colorSpeed.getValue())),
+                        new Color(custom1.getValue()),
+                        new Color(custom2.getValue())
+                ).getRGB();
+                break;
             case 2:
-                float cycle = this.getColorCycle(time, offset);
-                if (cycle % 1.0F < 0.5F) cycle = 1.0F - cycle % 1.0F;
-                color = ColorUtil.fromHSB(cycle, 1.0F, 1.0F);
+                float progress = (time % (long) (2000 / colorSpeed.getValue()) + offset * 10) / (2000f / colorSpeed.getValue());
+                if (progress > 1) progress = progress % 1;
+
+                Color c1 = new Color(custom1.getValue());
+                Color c2 = new Color(custom2.getValue());
+                Color c3 = new Color(custom3.getValue());
+
+                if (progress < 0.5) {
+                    color = ColorUtil.interpolate(progress * 2, c1, c2).getRGB();
+                } else {
+                    color = ColorUtil.interpolate((progress - 0.5f) * 2, c2, c3).getRGB();
+                }
                 break;
-            case 3: color = new Color(this.custom1.getValue()); break;
+            case 3:
+                color = ColorUtil.fromHSB((time % (int) (1000 / colorSpeed.getValue()) + offset) / (1000f / colorSpeed.getValue()), 0.8f, 1f).getRGB();
+                break;
             case 4:
-                double cycle1 = this.getColorCycle(time, offset);
-                color = ColorUtil.interpolate((float) (2.0 * Math.abs(cycle1 - Math.floor(cycle1 + 0.5))), new Color(this.custom1.getValue()), new Color(this.custom2.getValue()));
-                break;
-            case 5:
-                double cycle2 = this.getColorCycle(time, offset);
-                float floor = (float) (2.0 * Math.abs(cycle2 - Math.floor(cycle2 + 0.5)));
-                if (floor <= 0.5F) color = ColorUtil.interpolate(floor * 2.0F, new Color(this.custom1.getValue()), new Color(this.custom2.getValue()));
-                else color = ColorUtil.interpolate((floor - 0.5F) * 2.0F, new Color(this.custom2.getValue()), new Color(this.custom3.getValue()));
+                color = ColorUtil.astolfoColors((int) offset, 1000);
                 break;
         }
-        float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
-        return Color.getHSBColor(hsb[0], hsb[1] * (this.colorSaturation.getValue().floatValue() / 100.0F), hsb[2] * (this.colorBrightness.getValue().floatValue() / 100.0F));
+        return new Color(color);
     }
 
+    public Color getColor(long time) {
+        return getColor(time, 0);
+    }
 
     @EventTarget
     public void onTick(TickEvent event) {
+        sortedModules = Myau.moduleManager.modules.values().stream()
+                .filter(m -> !m.isHidden() && (m.isEnabled() || animationMap.getOrDefault(m, 0f) > 0.01f))
+                .sorted((m1, m2) -> Float.compare(getStringWidth(getModuleDisplay(m2)), getStringWidth(getModuleDisplay(m1))))
+                .collect(Collectors.toList());
     }
 
     @EventTarget
     public void onRender2D(Render2DEvent event) {
-        // --- 聊天框描边逻辑 (保留) ---
         if (this.chatOutline.getValue() && mc.currentScreen instanceof GuiChat) {
             String text = ((IAccessorGuiChat) mc.currentScreen).getInputField().getText().trim();
             if (Myau.commandManager != null && Myau.commandManager.isTypingCommand(text)) {
                 RenderUtil.enableRenderState();
-                RenderUtil.drawOutlineRect(2.0F, (float) (mc.currentScreen.height - 14), (float) (mc.currentScreen.width - 2), (float) (mc.currentScreen.height - 2), 1.5F, 0, this.getColor(System.currentTimeMillis(), 0).getRGB());
+                RenderUtil.drawOutlineRect(2.0F, (float) (mc.currentScreen.height - 14), (float) (mc.currentScreen.width - 2), (float) (mc.currentScreen.height - 2), 1.5F, 0, new Color(0, 111, 255).getRGB());
                 RenderUtil.disableRenderState();
             }
         }
 
-        if (this.isEnabled() && !mc.gameSettings.showDebugInfo) {
-            float fontHeight = getFontHeight() - 1.0F;
-            if (getCustomFont() != null) fontHeight += 2.0F;
+        if (!this.isEnabled() || mc.gameSettings.showDebugInfo) return;
 
-            // --- 核心修复：计算真实 Frame Time (秒) ---
-            // 防止 FPS 过低导致除零或极大值，限制最小 5 FPS
-            float deltaTime = 1.0f / Math.max(Minecraft.getDebugFPS(), 5);
+        GlStateManager.pushMatrix();
+        GlStateManager.scale(scale.getValue(), scale.getValue(), 1.0F);
 
-            for (Module module : Myau.moduleManager.modules.values()) {
-                float target = module.isEnabled() && !module.isHidden() ? 1.0F : 0.0F;
-                float current = animationMap.getOrDefault(module, 0.0F);
+        boolean right = arraylistMode.getValue() == 1;
+        float screenWidth = (float) new ScaledResolution(mc).getScaledWidth() / scale.getValue();
+        float currentY = offsetY.getValue();
+        float startX = right ? screenWidth - offsetX.getValue() : offsetX.getValue();
 
-                // --- 核心修复：使用新的 animateSmooth 算法 ---
-                // 乘数调整：将 property (0.1-10) 放大倍数，以便 slider 手感更好
-                // 乘以 6.0f 是为了让 1.0 的默认值产生一个适中的速度 (约 100-200ms 完成动画)
-                float speed = this.animationSpeed.getValue() * 6.0f;
+        float deltaTime = 1.0f / Math.max(Minecraft.getDebugFPS(), 5);
 
-                current = AnimationUtil.animateSmooth(target, current, speed, deltaTime);
+        checkSetupFBO();
 
-                // 阈值清除，防止浮点数残留
-                if (Math.abs(current - target) < 0.005F) current = target;
+        if (background.getValue() && blur.getValue()) {
+            GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
+            GL11.glEnable(GL11.GL_STENCIL_TEST);
 
-                animationMap.put(module, current);
+            GL11.glStencilFunc(GL11.GL_ALWAYS, 1, 0xFF);
+            GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
+            GL11.glColorMask(false, false, false, false);
+
+            float blurMaskY = currentY;
+
+            for (Module module : sortedModules) {
+                String displayText = getModuleDisplay(module);
+                float width = getStringWidth(displayText);
+
+                float targetSlide = module.isEnabled() ? width : 0f;
+                float currentSlide = animationMap.getOrDefault(module, 0f);
+
+                if (animation.getValue() == 0) {
+                    float speed = animSpeed.getValue() * 100f * deltaTime;
+                    if (Math.abs(currentSlide - targetSlide) > speed) {
+                        currentSlide += (currentSlide < targetSlide) ? speed : -speed;
+                    } else currentSlide = targetSlide;
+                } else {
+                    currentSlide = AnimationUtil.animateSmooth(targetSlide, currentSlide, animSpeed.getValue() * 10f, deltaTime);
+                }
+                if (currentSlide < 0) currentSlide = 0;
+                if (currentSlide > width) currentSlide = width;
+                animationMap.put(module, currentSlide);
+
+                if (currentSlide <= 0.1f) continue;
+
+                float rectH = textHeight.getValue();
+                float xPos = right ? (startX - currentSlide) : (startX - width + currentSlide);
+
+                float padding = bgPadding.getValue();
+                float bgX1 = xPos - padding;
+                float bgX2 = xPos + width + padding;
+
+                float barW = sidebarWidth.getValue();
+                if (sidebar.getValue()) {
+                    if (right) bgX2 += barW;
+                    else bgX1 -= barW;
+                }
+
+                RenderUtil.drawRect(bgX1, blurMaskY, bgX2, blurMaskY + rectH, -1);
+                blurMaskY += rectH;
             }
 
-            List<Module> renderList = Myau.moduleManager.modules.values().stream()
-                    .filter(m -> animationMap.getOrDefault(m, 0.0F) > 0.005F) // 阈值
-                    .sorted(Comparator.comparingInt(this::getModuleWidth).reversed())
-                    .collect(Collectors.toList());
+            GL11.glColorMask(true, true, true, true);
+            GL11.glStencilFunc(GL11.GL_EQUAL, 1, 0xFF);
+            GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
 
-            float startX = (float) this.offsetX.getValue() + (1.0F + (this.showBar.getValue() ? (this.shadow.getValue() ? 2.0F : 1.0F) : 0.0F)) * this.scale.getValue();
-            float startY = (float) this.offsetY.getValue() + 1.0F * this.scale.getValue();
+            BlurShader.renderBlur(blurRadius.getValue(), 0, 0, screenWidth, new ScaledResolution(mc).getScaledHeight() / scale.getValue(), 1.0f);
 
-            if (this.posX.getValue() == 1) startX = (float) new ScaledResolution(mc).getScaledWidth() - startX;
-            if (this.posY.getValue() == 1) startY = (float) new ScaledResolution(mc).getScaledHeight() - startY - fontHeight * this.scale.getValue();
+            GL11.glDisable(GL11.GL_STENCIL_TEST);
+        } else {
+            for (Module module : sortedModules) {
+                String displayText = getModuleDisplay(module);
+                float width = getStringWidth(displayText);
+                float targetSlide = module.isEnabled() ? width : 0f;
+                float currentSlide = animationMap.getOrDefault(module, 0f);
+                if (animation.getValue() == 0) {
+                    float speed = animSpeed.getValue() * 100f * deltaTime;
+                    if (Math.abs(currentSlide - targetSlide) > speed) {
+                        currentSlide += (currentSlide < targetSlide) ? speed : -speed;
+                    } else currentSlide = targetSlide;
+                } else {
+                    currentSlide = AnimationUtil.animateSmooth(targetSlide, currentSlide, animSpeed.getValue() * 10f, deltaTime);
+                }
+                if (currentSlide < 0) currentSlide = 0;
+                if (currentSlide > width) currentSlide = width;
+                animationMap.put(module, currentSlide);
+            }
+        }
 
-            GlStateManager.pushMatrix();
-            GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 0.0F);
+        if (glow.getValue() && background.getValue()) {
+            GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
+            GL11.glEnable(GL11.GL_STENCIL_TEST);
 
-            long l = System.currentTimeMillis();
-            long offset = 0L;
-            float currentY = startY;
+            GL11.glStencilFunc(GL11.GL_ALWAYS, 1, 0xFF);
+            GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
+            GL11.glColorMask(false, false, false, false);
 
-            for (Module module : renderList) {
-                float animValue = animationMap.getOrDefault(module, 0.0F);
-                if (animValue <= 0.005F) continue;
+            float maskY = currentY;
 
-                String moduleName = this.getModuleName(module);
-                String[] moduleSuffix = this.getModuleSuffix(module);
-                float totalWidth = (float) (this.calculateStringWidth(moduleName, moduleSuffix) - (this.shadow.getValue() ? 0 : 1));
-                float itemHeight = (fontHeight + (this.shadow.getValue() ? 1.0F : 0.0F)) * this.scale.getValue();
-                int color = this.getColor(l, offset).getRGB();
+            for (Module module : sortedModules) {
+                float currentSlide = animationMap.getOrDefault(module, 0f);
+                if (currentSlide <= 0.1f) continue;
 
-                // Fade 动画处理
-                if (this.animationMode.getValue() == 3) {
-                    color = ColorUtil.applyOpacity(color, animValue);
+                String displayText = getModuleDisplay(module);
+                float width = getStringWidth(displayText);
+                float rectH = textHeight.getValue();
+                float xPos = right ? (startX - currentSlide) : (startX - width + currentSlide);
+
+                float padding = bgPadding.getValue();
+                float bgX1 = xPos - padding;
+                float bgX2 = xPos + width + padding;
+
+                float barW = sidebarWidth.getValue();
+                if (sidebar.getValue()) {
+                    if (right) bgX2 += barW;
+                    else bgX1 -= barW;
                 }
 
-                GlStateManager.pushMatrix();
+                RenderUtil.drawRect(bgX1, maskY, bgX2, maskY + rectH, -1);
+                maskY += rectH;
+            }
 
-                float realX = startX / this.scale.getValue();
-                float realY = currentY / this.scale.getValue();
+            GL11.glColorMask(true, true, true, true);
+            GL11.glStencilFunc(GL11.GL_NOTEQUAL, 1, 0xFF);
+            GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
 
-                // --- 动画变换逻辑 ---
-                switch (this.animationMode.getValue()) {
-                    case 1: // SLIDE
-                        float slideDist = (totalWidth + 10) * (1.0F - animValue);
-                        if (this.posX.getValue() == 1) GlStateManager.translate(slideDist, 0, 0); // Right
-                        else GlStateManager.translate(-slideDist, 0, 0); // Left
-                        break;
-                    case 2: // SCALE
-                        float centerX = realX + (this.posX.getValue() == 1 ? -totalWidth / 2 : totalWidth / 2);
-                        float centerY = realY + fontHeight / 2;
-                        GlStateManager.translate(centerX, centerY, 0);
-                        GlStateManager.scale(animValue, animValue, 1.0F);
-                        GlStateManager.translate(-centerX, -centerY, 0);
-                        break;
-                    case 3: // FADE
-                        break;
-                    case 4: // ZIPPER
-                        // 根据 animValue 调整 Y 轴间距的视觉效果，实际位移在 loop 底部 currentY += ...
-                        GlStateManager.translate(0, (itemHeight * (1.0F - animValue)) * (this.posY.getValue() == 1 ? -0.5 : 0.5), 0);
-                        GlStateManager.scale(1.0F, animValue, 1.0F);
-                        break;
+            long time = System.currentTimeMillis();
+            int colorAlpha = glowAlpha.getValue();
+
+            float glowMaskY = currentY;
+
+            for (Module module : sortedModules) {
+                float currentSlide = animationMap.getOrDefault(module, 0f);
+                if (currentSlide <= 0.1f) continue;
+
+                String displayText = getModuleDisplay(module);
+                float width = getStringWidth(displayText);
+                float rectH = textHeight.getValue();
+                float xPos = right ? (startX - currentSlide) : (startX - width + currentSlide);
+
+                float padding = bgPadding.getValue();
+                float bgX1 = xPos - padding;
+                float bgX2 = xPos + width + padding;
+
+                float barW = sidebarWidth.getValue();
+                if (sidebar.getValue()) {
+                    if (right) bgX2 += barW;
+                    else bgX1 -= barW;
                 }
 
-                RenderUtil.enableRenderState();
+                if (colorAlpha > 0) {
+                    Color baseGlowColor;
+                    if (glowColorMode.getValue() == 0) {
+                        int offset = (int) (glowMaskY * 0.5f);
+                        baseGlowColor = this.getColor(time, offset);
+                    } else {
+                        baseGlowColor = new Color(glowCustomColor.getValue());
+                    }
 
-                // 背景绘制
-                if (this.background.getValue() > 0) {
-                    int bgColor = new Color(0.0F, 0.0F, 0.0F, this.background.getValue().floatValue() / 100.0F).getRGB();
-                    if (this.animationMode.getValue() == 3) bgColor = ColorUtil.applyOpacity(bgColor, animValue);
+                    int glowColor = ColorUtil.withAlpha(baseGlowColor, colorAlpha).getRGB();
 
-                    RenderUtil.drawRect(
-                            realX - 1.0F - (this.posX.getValue() == 0 ? 0.0F : totalWidth),
-                            realY - (this.posY.getValue() == 0 ? (offset == 0L ? 1.0F : 0.0F) : (this.shadow.getValue() ? 1.0F : 0.0F)),
-                            realX + 1.0F + (this.posX.getValue() == 0 ? totalWidth : 0.0F),
-                            realY + fontHeight + (this.posY.getValue() == 0 ? (this.shadow.getValue() ? 1.0F : 0.0F) : (offset == 0L ? 1.0F : 0.0F)),
-                            bgColor
+                    ShadowShader.drawShadow(
+                            bgX1, glowMaskY, bgX2 - bgX1, rectH,
+                            glowRadius.getValue(), glowRadius.getValue() + 5,
+                            glowColor
                     );
                 }
 
-                // 侧边条绘制
-                if (this.showBar.getValue()) {
-                    float barTop = realY - (this.posY.getValue() == 0 ? (offset == 0L ? 1.0F : 0.0F) : 0.0F);
-                    float barBottom = realY + fontHeight + (this.posY.getValue() == 0 ? 0.0F : (offset == 0L ? 1.0F : 0.0F));
-                    float xBase = realX;
-
-                    if (this.shadow.getValue()) {
-                        RenderUtil.drawRect(xBase + (this.posX.getValue() == 0 ? -3.0F : 1.0F), barTop - 1.0f, xBase + (this.posX.getValue() == 0 ? -2.0F : 2.0F), barBottom + 1.0f, color);
-                        RenderUtil.drawRect(xBase + (this.posX.getValue() == 0 ? -2.0F : 2.0F), barTop - 1.0f, xBase + (this.posX.getValue() == 0 ? -1.0F : 3.0F), barBottom + 1.0f, (color & 16579836) >> 2 | color & 0xFF000000);
-                    } else {
-                        RenderUtil.drawRect(xBase + (this.posX.getValue() == 0 ? -2.0F : 1.0F), barTop, xBase + (this.posX.getValue() == 0 ? -1.0F : 2.0F), barBottom, color);
-                    }
-                }
-
-                RenderUtil.disableRenderState();
-                GlStateManager.disableDepth();
-
-                // 文字绘制
-                float textX = realX - (this.posX.getValue() == 1 ? totalWidth : 0.0F);
-                float textY = realY + (this.posY.getValue() == 1 ? 1.0F : 0.0F);
-
-                this.drawString(moduleName, textX, textY, color, this.shadow.getValue());
-
-                if (this.suffixes.getValue() && moduleSuffix.length > 0) {
-                    float width = getStringWidth(moduleName) + 3.0F;
-                    int suffixColor = ChatColors.GRAY.toAwtColor();
-                    if (this.animationMode.getValue() == 3) suffixColor = ColorUtil.applyOpacity(suffixColor, animValue);
-
-                    for (String string : moduleSuffix) {
-                        this.drawString(string, textX + width, textY, suffixColor, this.shadow.getValue());
-                        width += getStringWidth(string) + (this.shadow.getValue() ? 3.0F : 2.0F);
-                    }
-                }
-
-                GlStateManager.popMatrix();
-
-                // 更新 Y 轴累加值
-                // 如果是 Zipper 模式，根据 animValue 动态改变高度，否则全高
-                float heightMultiplier = (this.animationMode.getValue() == 4) ? animValue : 1.0f;
-
-                // 注意：如果不是 Zipper 模式，也应该加上间距。
-                // 你的逻辑中 animationMode 0=NONE, 1=SLIDE, 2=SCALE, 3=FADE, 4=ZIPPER
-                // Slide/Scale/Fade 模式下，高度应该是全高，只有 Zipper 会压缩高度
-
-                currentY += itemHeight * heightMultiplier * (this.posY.getValue() == 0 ? 1.0F : -1.0F);
-
-                offset++;
+                glowMaskY += rectH;
             }
 
-            // Blink Timer (保留)
-            if (this.blinkTimer.getValue()) {
-                BlinkModules blinkingModule = Myau.blinkManager.getBlinkingModule();
-                if (blinkingModule != BlinkModules.NONE && blinkingModule != BlinkModules.AUTO_BLOCK) {
-                    long movementPacketSize = Myau.blinkManager.countMovement();
-                    if (movementPacketSize > 0L) {
-                        GlStateManager.enableBlend();
-                        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-                        String blinkText = String.valueOf(movementPacketSize);
-                        float blinkX = (float) new ScaledResolution(mc).getScaledWidth() / 2.0F / this.scale.getValue() - getStringWidth(blinkText) / 2.0F;
-                        float blinkY = (float) new ScaledResolution(mc).getScaledHeight() / 5.0F * 3.0F / this.scale.getValue();
-                        this.drawString(blinkText, blinkX, blinkY, this.getColor(l, offset).getRGB() & 16777215 | -1090519040, this.shadow.getValue());
-                        GlStateManager.disableBlend();
-                    }
+            GL11.glDisable(GL11.GL_STENCIL_TEST);
+        }
+
+        int count = 0;
+        long time = System.currentTimeMillis();
+
+        for (Module module : sortedModules) {
+            float currentSlide = animationMap.getOrDefault(module, 0f);
+            if (currentSlide <= 0.1f) {
+                count++;
+                continue;
+            }
+
+            String displayText = getModuleDisplay(module);
+            float width = getStringWidth(displayText);
+            float rectH = textHeight.getValue();
+            float xPos = right ? (startX - currentSlide) : (startX - width + currentSlide);
+            float paddingY = (rectH - getFontHeight()) / 2f;
+
+            int offset = (int) (count * colorDistance.getValue());
+            int color = this.getColor(time, offset).getRGB();
+
+            float padding = bgPadding.getValue();
+            float bgX1 = xPos - padding;
+            float bgX2 = xPos + width + padding;
+
+            float barW = sidebarWidth.getValue();
+
+            if (sidebar.getValue()) {
+                if (right) bgX2 += barW;
+                else bgX1 -= barW;
+            }
+
+            if (background.getValue()) {
+                int finalBgColor = ColorUtil.withAlpha(new Color(bgColor.getValue()), bgAlpha.getValue()).getRGB();
+                RenderUtil.drawRect(bgX1, currentY, bgX2, currentY + rectH, finalBgColor);
+            }
+
+            if (sidebar.getValue()) {
+                int sideColor = sidebarSync.getValue() ? color : sidebarColor.getValue();
+                float adjustedSidebarHeight = rectH * sidebarHeight.getValue();
+                float sidebarOffsetY = (rectH - adjustedSidebarHeight) / 2;
+                if (right) {
+                    RenderUtil.drawRect(bgX2 - barW, currentY + sidebarOffsetY, bgX2, currentY + sidebarOffsetY + adjustedSidebarHeight, sideColor);
+                } else {
+                    RenderUtil.drawRect(bgX1, currentY + sidebarOffsetY, bgX1 + barW, currentY + sidebarOffsetY + adjustedSidebarHeight, sideColor);
                 }
             }
-            GlStateManager.enableDepth();
-            GlStateManager.popMatrix();
+
+            float textY = currentY + paddingY + textYOffset.getValue();
+            if (getCustomFont() == null) textY += 1.0f;
+
+            this.drawString(displayText, xPos, textY, color, shadow.getValue());
+
+            currentY += rectH;
+            count++;
+        }
+
+        if (this.blinkTimer.getValue()) {
+            if (Myau.blinkManager.getBlinkingModule() != BlinkModules.NONE && Myau.blinkManager.getBlinkingModule() != BlinkModules.AUTO_BLOCK) {
+                long packetSize = Myau.blinkManager.countMovement();
+                if (packetSize > 0L) {
+                    String blinkText = String.valueOf(packetSize);
+                    float bx = (float) new ScaledResolution(mc).getScaledWidth() / 2.0F / scale.getValue() - getStringWidth(blinkText) / 2.0F;
+                    float by = (float) new ScaledResolution(mc).getScaledHeight() / 2.0F / scale.getValue() + 15;
+                    this.drawString(blinkText, bx, by, new Color(0, 111, 255).getRGB(), true);
+                }
+            }
+        }
+
+        GlStateManager.popMatrix();
+    }
+
+    private void checkSetupFBO() {
+        Framebuffer fbo = mc.getFramebuffer();
+        if (fbo != null && fbo.depthBuffer > -1) {
+            EXTFramebufferObject.glDeleteRenderbuffersEXT(fbo.depthBuffer);
+            int stencil_depth_buffer_id = EXTFramebufferObject.glGenRenderbuffersEXT();
+            EXTFramebufferObject.glBindRenderbufferEXT(EXTFramebufferObject.GL_RENDERBUFFER_EXT, stencil_depth_buffer_id);
+            EXTFramebufferObject.glRenderbufferStorageEXT(EXTFramebufferObject.GL_RENDERBUFFER_EXT, EXTPackedDepthStencil.GL_DEPTH_STENCIL_EXT, mc.displayWidth, mc.displayHeight);
+            EXTFramebufferObject.glFramebufferRenderbufferEXT(EXTFramebufferObject.GL_FRAMEBUFFER_EXT, EXTFramebufferObject.GL_DEPTH_ATTACHMENT_EXT, EXTFramebufferObject.GL_RENDERBUFFER_EXT, stencil_depth_buffer_id);
+            EXTFramebufferObject.glFramebufferRenderbufferEXT(EXTFramebufferObject.GL_FRAMEBUFFER_EXT, EXTFramebufferObject.GL_STENCIL_ATTACHMENT_EXT, EXTFramebufferObject.GL_RENDERBUFFER_EXT, stencil_depth_buffer_id);
+            fbo.depthBuffer = -1;
         }
     }
 }

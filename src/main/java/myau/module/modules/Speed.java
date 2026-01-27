@@ -19,12 +19,11 @@ public class Speed extends Module {
     public final FloatProperty multiplier = new FloatProperty("multiplier", 1.0F, 0.0F, 10.0F);
     public final FloatProperty friction = new FloatProperty("friction", 1.0F, 0.0F, 10.0F);
     public final ModeProperty mode = new ModeProperty("mode", Mode.HYPIXEL.ordinal(), new String[]{"LEGIHOP", "HYPIXEL"});
-
-    public enum Mode {
-        LEGIHOP,
-        HYPIXEL
-    }
     public final PercentProperty strafe = new PercentProperty("strafe", 0);
+
+    public Speed() {
+        super("Speed", "Allows you to move faster.", Category.MOVEMENT, 0, false, false);
+    }
 
     private boolean canBoost() {
         if (this.mode.getValue() == Mode.LEGIHOP.ordinal()) {
@@ -44,10 +43,6 @@ public class Speed extends Module {
         }
     }
 
-    public Speed() {
-        super("Speed", "Allows you to move faster.", Category.MOVEMENT, 0, false, false);
-    }
-
     @EventTarget(Priority.LOW)
     public void onStrafe(StrafeEvent event) {
         if (this.isEnabled() && this.canBoost()) {
@@ -62,7 +57,7 @@ public class Speed extends Module {
                     if (mc.thePlayer.onGround) {
                         mc.thePlayer.motionY = 0.42F;
                         MoveUtil.setSpeed(
-                                MoveUtil.getJumpMotion() * (double) this.multiplier.getValue().floatValue(),
+                                MoveUtil.getJumpMotion() * (double) this.multiplier.getValue(),
                                 MoveUtil.getMoveYaw()
                         );
                     } else {
@@ -73,7 +68,7 @@ public class Speed extends Module {
                             double speed = MoveUtil.getSpeed();
                             MoveUtil.setSpeed(speed * (double) ((float) (100 - this.strafe.getValue()) / 100.0F), MoveUtil.getDirectionYaw());
                             MoveUtil.addSpeed(
-                                    speed * (double) ((float) this.strafe.getValue().intValue() / 100.0F), MoveUtil.getMoveYaw()
+                                    speed * (double) ((float) this.strafe.getValue() / 100.0F), MoveUtil.getMoveYaw()
                             );
                             MoveUtil.setSpeed(speed);
                         }
@@ -88,5 +83,10 @@ public class Speed extends Module {
         if (this.isEnabled() && this.canBoost() && this.mode.getValue() == Mode.HYPIXEL.ordinal()) {
             mc.thePlayer.movementInput.jump = false;
         }
+    }
+
+    public enum Mode {
+        LEGIHOP,
+        HYPIXEL
     }
 }

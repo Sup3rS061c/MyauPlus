@@ -1,20 +1,15 @@
 package myau.util.font.impl;
 
-import myau.Myau;
-import static myau.config.Config.mc;
-
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.util.ResourceLocation;
 
 import java.awt.*;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
-public class FontUtil {
+import static myau.config.Config.mc;
 
-    private static final IResourceManager RESOURCE_MANAGER = mc.getResourceManager();
+public class FontUtil {
 
     public static Font getResource(Map<String, Font> locationMap, String location, int size) {
         Font font;

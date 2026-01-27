@@ -8,6 +8,7 @@ import static myau.config.Config.mc;
 
 public class MinecraftFontRenderer implements IFont {
     public static MinecraftFontRenderer INSTANCE = new MinecraftFontRenderer();
+
     public void drawString(String text, double x, double y, int color, boolean dropShadow) {
         mc.fontRendererObj.drawString(text, (float) x, (float) y, color, dropShadow);
     }

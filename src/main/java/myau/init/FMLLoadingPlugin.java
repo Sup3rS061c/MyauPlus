@@ -1,5 +1,6 @@
 package myau.init;
 
+import lombok.Getter;
 import org.spongepowered.asm.lib.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -19,13 +20,11 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class FMLLoadingPlugin implements IMixinConfigPlugin {
+    @Getter
     private static final List<FMLLoadingPlugin> mixinPlugins = new ArrayList<>();
+    @Getter
     private String mixinPackage;
     private List<String> mixins = null;
-
-    public static List<FMLLoadingPlugin> getMixinPlugins() {
-        return mixinPlugins;
-    }
 
     public void onLoad(String mixinPackage) {
         this.mixinPackage = mixinPackage;
@@ -49,10 +48,6 @@ public class FMLLoadingPlugin implements IMixinConfigPlugin {
         } else {
             return classUrl;
         }
-    }
-
-    public String getMixinPackage() {
-        return this.mixinPackage;
     }
 
     public String getMixinBaseDir() {

@@ -1,440 +1,293 @@
+//This class is full of shit by gemini!
 package myau.module.modules;
 
-import java.awt.Color;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.LinkedList;
-
-import org.lwjgl.opengl.GL11;
-
 import myau.event.EventTarget;
+import myau.event.types.EventType;
 import myau.events.PacketEvent;
 import myau.events.Render3DEvent;
-import myau.events.TickEvent;
-import myau.event.types.EventType;
+import myau.events.UpdateEvent;
+import myau.mixin.IAccessorRenderManager;
 import myau.module.Category;
 import myau.module.Module;
 import myau.property.properties.BooleanProperty;
 import myau.property.properties.FloatProperty;
 import myau.property.properties.IntProperty;
 import myau.util.RenderUtil;
-import net.minecraft.client.renderer.GlStateManager;
+import myau.util.TimerUtil;
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.INetHandlerPlayClient;
 import net.minecraft.network.play.client.C02PacketUseEntity;
 import net.minecraft.network.play.server.*;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.Vec3;
-import net.minecraftforge.event.world.WorldEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class BackTrack extends Module {
+    private static final Minecraft mc = Minecraft.getMinecraft();
 
-    // 设置项
-    public final IntProperty latency = new IntProperty("Latency delay", 200, 1, 1000);
-    public final FloatProperty enemyDistance = new FloatProperty("Enemy distance", 6.0F, 3.1F, 6.0F);
-    public final BooleanProperty onlyCombat = new BooleanProperty("Only during combat", true);
-    public final BooleanProperty predictPosition = new BooleanProperty("Render prediction", true);
-    public final BooleanProperty useThemeColor = new BooleanProperty("Use theme color", false);
-    public final IntProperty boxColor = new IntProperty("Box color [H]", 0, 0, 360);
-    public final BooleanProperty disableOnWorldChange = new BooleanProperty("Disable on world change", false);
-    public final BooleanProperty disableOnDisconnect = new BooleanProperty("Disable on disconnect", false);
+    private final IntProperty minLatency = new IntProperty("Min Latency", 50, 10, 1000);
+    private final IntProperty maxLatency = new IntProperty("Max Latency", 100, 10, 1000);
+    private final FloatProperty minDistance = new FloatProperty("Min Distance", 0.0f, 0.0f, 3.0f);
+    private final FloatProperty maxDistance = new FloatProperty("Max Distance", 6.0f, 0.0f, 10.0f);
+    private final IntProperty stopOnTargetHurtTime = new IntProperty("Stop Target HurtTime", 10, -1, 10);
+    private final IntProperty stopOnSelfHurtTime = new IntProperty("Stop Self HurtTime", 10, -1, 10);
+    private final BooleanProperty drawRealPosition = new BooleanProperty("Draw Real Position", true);
 
-    // 内部变量
     private final Queue<TimedPacket> packetQueue = new ConcurrentLinkedQueue<>();
-    private Vec3 vec3, lastVec3;
-    private EntityPlayer target;
-    private int attackTicks;
+    private final List<Packet<?>> skipPackets = new ArrayList<>();
 
-    // 新增：用于ESP平滑移动的历史位置队列
-    private final LinkedList<Vec3> positionHistory = new LinkedList<>();
-    private final int maxHistorySize = 10;
-    private Vec3 lastRenderedPos = null;
+    private EntityLivingBase target;
+    private Vec3 realTargetPos;
+    private int currentLatency = 0;
 
-    // 新增：用于检测快速移动的变量
-    private final LinkedList<Vec3> recentPositions = new LinkedList<>();
-    private static final int FAST_MOVE_CHECK_TICKS = 5;
-    private static final double FAST_MOVE_THRESHOLD = 5.0;
-
-    // 新增：模块状态标志
-    private boolean moduleActive = false;
+    private double renderX, renderY, renderZ;
 
     public BackTrack() {
-        super("BackTrack", "Delays packets to hit past positions", Category.COMBAT, 0, false, false);
+        super("BackTrack", "Allows you to hit past opponents", Category.COMBAT, 0, false, false);
     }
 
     @Override
     public String[] getSuffix() {
-        if (!isEnabled()) {
-            return new String[]{""};
-        }
-        return new String[]{latency.getValue() + "ms"};
+        return new String[]{(currentLatency == 0 ? maxLatency.getValue() : currentLatency) + "ms"};
     }
 
     @Override
     public void onEnabled() {
-        super.onEnabled();
-        if (mc.thePlayer == null) {
-            toggle();
-            return;
-        }
-        packetQueue.clear();
-        positionHistory.clear();
-        recentPositions.clear();
-        vec3 = lastVec3 = null;
-        lastRenderedPos = null;
-        target = null;
-        attackTicks = 0;
-        moduleActive = true;
+        resetStates();
     }
 
     @Override
     public void onDisabled() {
-        super.onDisabled();
-        moduleActive = false;
-        if (mc.thePlayer == null) return;
-        // 在禁用时释放所有被延迟的数据包
-        releaseAllImmediately();
-        positionHistory.clear();
-        recentPositions.clear();
+        releaseAll();
+        resetStates();
+    }
+
+    private void resetStates() {
+        packetQueue.clear();
+        skipPackets.clear();
+        realTargetPos = null;
         target = null;
-        vec3 = lastVec3 = null;
+        renderX = 0;
+        renderY = 0;
+        renderZ = 0;
     }
 
     @EventTarget
-    public void onTick(TickEvent event) {
-        if (event.getType() != EventType.PRE) return;
-
-        // 只有模块开启时才处理
-        if (!moduleActive) {
-            return;
-        }
-
-        // 更新攻击计时
-        attackTicks++;
-
-        try {
-            if (target != null) {
-                // 新增：检测快速移动
-                Vec3 currentPos = target.getPositionVector();
-                recentPositions.add(new Vec3(currentPos.xCoord, currentPos.yCoord, currentPos.zCoord));
-
-                if (recentPositions.size() > FAST_MOVE_CHECK_TICKS) {
-                    recentPositions.removeFirst();
+    public void onUpdate(UpdateEvent event) {
+        if (!this.isEnabled() || mc.thePlayer == null) return;
+        if (event.getType() == EventType.PRE) {
+            // 距离检查：如果目标太远，强制停止 Backtrack
+            if (target != null && realTargetPos != null) {
+                double distance = realTargetPos.distanceTo(mc.thePlayer.getPositionVector());
+                if (distance > maxDistance.getValue() || distance < minDistance.getValue()) {
+                    releaseAll(); // 距离不满足时释放所有包
                 }
-
-                // 检查快速移动
-                if (recentPositions.size() == FAST_MOVE_CHECK_TICKS) {
-                    Vec3 oldestPos = recentPositions.getFirst();
-                    double distanceMoved = oldestPos.distanceTo(currentPos);
-
-                    if (distanceMoved > FAST_MOVE_THRESHOLD) {
-                        target = null;
-                        vec3 = lastVec3 = null;
-                        positionHistory.clear();
-                        recentPositions.clear();
-                        releaseAllImmediately();
-                        return;
-                    }
-                }
-
-                // 更新位置历史用于平滑
-                positionHistory.add(new Vec3(currentPos.xCoord, currentPos.yCoord, currentPos.zCoord));
-                if (positionHistory.size() > maxHistorySize) {
-                    positionHistory.removeFirst();
-                }
-
-                // 检查超时或距离
-                if (attackTicks > 7 || vec3.distanceTo(mc.thePlayer.getPositionVector()) > enemyDistance.getValue()) {
-                    target = null;
-                    vec3 = lastVec3 = null;
-                    positionHistory.clear();
-                    recentPositions.clear();
-                    releaseAllImmediately();
-                }
-                lastVec3 = vec3;
             }
-        } catch (Exception ignored) {}
 
-        // 处理队列释放
-        long maxDelay = latency.getValue();
-        while (!packetQueue.isEmpty()) {
-            TimedPacket timedPacket = packetQueue.peek();
-
-            // 检查时间是否到达
-            if (System.currentTimeMillis() - timedPacket.timestamp >= maxDelay) {
-                packetQueue.poll();
-                processPacketLocally(timedPacket.packet);
-            } else {
-                break;
+            // 处理队列中的数据包
+            while (!packetQueue.isEmpty()) {
+                TimedPacket timedPacket = packetQueue.peek();
+                if (timedPacket != null && timedPacket.timer.hasTimeElapsed(currentLatency)) {
+                    packetQueue.poll();
+                    Packet<?> packet = timedPacket.packet;
+                    skipPackets.add(packet);
+                    handlePacket(packet);
+                } else {
+                    break;
+                }
             }
-        }
-
-        // 更新位置向量
-        if (packetQueue.isEmpty() && target != null) {
-            vec3 = target.getPositionVector();
         }
     }
 
     @EventTarget
     public void onRender3D(Render3DEvent event) {
-        // 只有模块开启时才渲染
-        if (!moduleActive || !this.predictPosition.getValue()) {
+        if (!this.isEnabled() || mc.thePlayer == null) return;
+        if (target == null || realTargetPos == null || target.isDead || !drawRealPosition.getValue())
             return;
+
+        Vec3 pos = realTargetPos;
+
+        if (renderX == 0 && renderY == 0 && renderZ == 0) {
+            renderX = pos.xCoord;
+            renderY = pos.yCoord;
+            renderZ = pos.zCoord;
         }
 
-        if (this.target != null && this.vec3 != null && this.lastVec3 != null) {
+        renderX = RenderUtil.lerpDouble(pos.xCoord, renderX, 0.5);
+        renderY = RenderUtil.lerpDouble(pos.yCoord, renderY, 0.5);
+        renderZ = RenderUtil.lerpDouble(pos.zCoord, renderZ, 0.5);
 
-            // 获取颜色
-            Color color;
-            if (useThemeColor.getValue()) {
-                // 使用主题颜色，如果没有就用红色
-                color = new Color(0xFFFF0000);
-            } else {
-                color = Color.getHSBColor((boxColor.getValue() % 360) / 360.0f, 1.0f, 1.0f);
-            }
+        double viewerX = ((IAccessorRenderManager) mc.getRenderManager()).getRenderPosX();
+        double viewerY = ((IAccessorRenderManager) mc.getRenderManager()).getRenderPosY();
+        double viewerZ = ((IAccessorRenderManager) mc.getRenderManager()).getRenderPosZ();
 
-            // 获取平滑位置
-            Vec3 renderPos = getSmoothedPosition(event.getPartialTicks());
+        double x = renderX - viewerX;
+        double y = renderY - viewerY;
+        double z = renderZ - viewerZ;
 
-            // 创建 AABB 并偏移
-            float size = target.getCollisionBorderSize();
-            AxisAlignedBB aabb = new AxisAlignedBB(
-                    renderPos.xCoord - (double) target.width / 2.0,
-                    renderPos.yCoord,
-                    renderPos.zCoord - (double) target.width / 2.0,
-                    renderPos.xCoord + (double) target.width / 2.0,
-                    renderPos.yCoord + (double) target.height,
-                    renderPos.zCoord + (double) target.width / 2.0
-            ).expand(size, size, size).offset(
-                    -mc.getRenderManager().viewerPosX,
-                    -mc.getRenderManager().viewerPosY,
-                    -mc.getRenderManager().viewerPosZ
-            );
+        double width = target.width / 2.0;
+        double height = target.height;
 
-            // 渲染状态设置
-            GlStateManager.pushMatrix();
-            GlStateManager.enableBlend();
-            GlStateManager.disableTexture2D();
-            GlStateManager.disableDepth();
-            GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+        AxisAlignedBB box = new AxisAlignedBB(
+                x - width, y, z - width,
+                x + width, y + height, z + width
+        );
 
-            // 绘制盒子
-            RenderUtil.drawFilledBox(aabb, color.getRed(), color.getGreen(), color.getBlue());
+        Color color = new Color(72, 125, 227, 100);
 
-            // 恢复渲染状态
-            GlStateManager.enableDepth();
-            GlStateManager.enableTexture2D();
-            GlStateManager.disableBlend();
-            GlStateManager.popMatrix();
-
-            lastRenderedPos = renderPos;
-        }
-    }
-
-    /**
-     * 获取平滑的位置（使用历史位置进行插值）
-     */
-    private Vec3 getSmoothedPosition(float partialTicks) {
-        if (positionHistory.isEmpty()) {
-            return new Vec3(
-                    lastVec3.xCoord + (vec3.xCoord - lastVec3.xCoord) * partialTicks,
-                    lastVec3.yCoord + (vec3.yCoord - lastVec3.yCoord) * partialTicks,
-                    lastVec3.zCoord + (vec3.zCoord - lastVec3.zCoord) * partialTicks
-            );
-        }
-
-        // 使用历史位置进行加权平均
-        double totalWeight = 0;
-        double x = 0, y = 0, z = 0;
-
-        for (int i = 0; i < positionHistory.size(); i++) {
-            double weight = (i + 1) / (double) positionHistory.size();
-            Vec3 pos = positionHistory.get(i);
-
-            x += pos.xCoord * weight;
-            y += pos.yCoord * weight;
-            z += pos.zCoord * weight;
-            totalWeight += weight;
-        }
-
-        // 添加当前位置（最高权重）
-        double currentWeight = 1.5;
-        x += vec3.xCoord * currentWeight;
-        y += vec3.yCoord * currentWeight;
-        z += vec3.zCoord * currentWeight;
-        totalWeight += currentWeight;
-
-        // 计算加权平均值
-        x /= totalWeight;
-        y /= totalWeight;
-        z /= totalWeight;
-
-        return new Vec3(x, y, z);
+        RenderUtil.enableRenderState();
+        RenderUtil.drawFilledBox(box, color.getRed(), color.getGreen(), color.getBlue());
+        RenderUtil.disableRenderState();
     }
 
     @EventTarget
     public void onPacket(PacketEvent event) {
-        // 关键修改：只有在模块开启时才处理数据包
-        if (!moduleActive) {
-            return;
-        }
+        if (!this.isEnabled() || mc.thePlayer == null) return;
+        Packet<?> packet = event.getPacket();
 
-        if (event.isCancelled()) return;
-        Packet<?> p = event.getPacket();
+        if (event.getType() == EventType.SEND) {
+            if (packet instanceof C02PacketUseEntity) {
+                C02PacketUseEntity wrapper = (C02PacketUseEntity) packet;
+                if (wrapper.getAction() == C02PacketUseEntity.Action.ATTACK) {
+                    Entity entity = wrapper.getEntityFromWorld(mc.theWorld);
+                    if (entity instanceof EntityLivingBase) {
+                        EntityLivingBase newTarget = (EntityLivingBase) entity;
 
-        // 接收包处理 (Server -> Client)
-        if (event.getType() == EventType.RECEIVE) {
-            try {
-                if (mc.thePlayer == null || mc.thePlayer.ticksExisted < 20) {
-                    packetQueue.clear();
-                    positionHistory.clear();
-                    recentPositions.clear();
-                    return;
+                        // 核心修复：只有当目标改变，或者还没有初始化位置时，才重置 realTargetPos
+                        // 这样连续攻击同一个目标时，realTargetPos 会保持由 Receive 包更新的状态，不会跳回
+                        if (this.target != newTarget || this.realTargetPos == null) {
+                            this.target = newTarget;
+                            this.realTargetPos = new Vec3(target.serverPosX / 32.0D, target.serverPosY / 32.0D, target.serverPosZ / 32.0D);
+
+                            this.renderX = this.realTargetPos.xCoord;
+                            this.renderY = this.realTargetPos.yCoord;
+                            this.renderZ = this.realTargetPos.zCoord;
+
+                            // 只有切换目标时才重新随机延迟，或者你想每次攻击都随机也可以放在外面
+                            double distance = realTargetPos.distanceTo(mc.thePlayer.getPositionVector());
+                            if (distance <= maxDistance.getValue() && distance >= minDistance.getValue()) {
+                                int min = minLatency.getValue();
+                                int max = maxLatency.getValue();
+                                this.currentLatency = min + (int) (Math.random() * ((max - min) + 1));
+                            }
+                        }
+                    }
                 }
+            }
+        } else if (event.getType() == EventType.RECEIVE) {
+            if (skipPackets.contains(packet)) {
+                skipPackets.remove(packet);
+                return;
+            }
 
-                if (target == null) {
-                    return;
+            // 伤害时间检查
+            if (target != null && stopOnTargetHurtTime.getValue() != -1 && target.hurtTime > stopOnTargetHurtTime.getValue()) {
+                releaseAll();
+                return;
+            }
+            if (stopOnSelfHurtTime.getValue() != -1 && mc.thePlayer.hurtTime > stopOnSelfHurtTime.getValue()) {
+                releaseAll();
+                return;
+            }
+
+            if (mc.thePlayer.ticksExisted < 20 || target == null || target.isDead) {
+                releaseAll();
+                return;
+            }
+
+            if (packet instanceof S19PacketEntityStatus
+                    || packet instanceof S02PacketChat
+                    || packet instanceof S0BPacketAnimation
+                    || packet instanceof S06PacketUpdateHealth
+                    || packet instanceof S08PacketPlayerPosLook
+                    || packet instanceof S40PacketDisconnect) {
+
+                if (packet instanceof S08PacketPlayerPosLook || packet instanceof S40PacketDisconnect) {
+                    releaseAll();
                 }
+                return;
+            }
 
-                // 检查是否是我们目标的包 - 只拦截玩家位置相关的包
-                boolean shouldIntercept = false;
+            if (packet instanceof S13PacketDestroyEntities) {
+                S13PacketDestroyEntities wrapper = (S13PacketDestroyEntities) packet;
+                for (int id : wrapper.getEntityIDs()) {
+                    if (target != null && id == target.getEntityId()) {
+                        releaseAll();
+                        return;
+                    }
+                }
+            }
 
-                if (p instanceof S14PacketEntity) {
-                    S14PacketEntity wrapper = (S14PacketEntity) p;
-                    Entity entity = wrapper.getEntity(mc.theWorld);
-                    if (entity != null && entity.getEntityId() == target.getEntityId()) {
-                        vec3 = vec3.addVector(
+            boolean shouldCancel = false;
+
+            if (packet instanceof S14PacketEntity) {
+                S14PacketEntity wrapper = (S14PacketEntity) packet;
+                Entity entity = wrapper.getEntity(mc.theWorld);
+                if (entity != null && target != null && entity.getEntityId() == target.getEntityId()) {
+                    if (realTargetPos != null) {
+                        // S14 累加逻辑
+                        realTargetPos = realTargetPos.addVector(
                                 wrapper.func_149062_c() / 32.0D,
                                 wrapper.func_149061_d() / 32.0D,
                                 wrapper.func_149064_e() / 32.0D
                         );
-                        shouldIntercept = true;
                     }
-                } else if (p instanceof S18PacketEntityTeleport) {
-                    S18PacketEntityTeleport wrapper = (S18PacketEntityTeleport) p;
-                    if (wrapper.getEntityId() == target.getEntityId()) {
-                        vec3 = new Vec3(wrapper.getX() / 32.0D, wrapper.getY() / 32.0D, wrapper.getZ() / 32.0D);
-                        shouldIntercept = true;
-                    }
-                } else if (p instanceof S13PacketDestroyEntities) {
-                    S13PacketDestroyEntities wrapper = (S13PacketDestroyEntities) p;
-                    for (int id : wrapper.getEntityIDs()) {
-                        if (id == target.getEntityId()) {
-                            target = null;
-                            vec3 = lastVec3 = null;
-                            positionHistory.clear();
-                            recentPositions.clear();
-                            releaseAllImmediately();
-                            return;
-                        }
-                    }
+                    shouldCancel = true;
                 }
-
-                // 只有目标玩家的位置包才拦截
-                if (shouldIntercept) {
-                    packetQueue.add(new TimedPacket(p, System.currentTimeMillis()));
-                    event.setCancelled(true);
+            } else if (packet instanceof S18PacketEntityTeleport) {
+                S18PacketEntityTeleport wrapper = (S18PacketEntityTeleport) packet;
+                if (wrapper.getEntityId() == target.getEntityId()) {
+                    // S18 绝对定位
+                    realTargetPos = new Vec3(wrapper.getX() / 32.0D, wrapper.getY() / 32.0D, wrapper.getZ() / 32.0D);
+                    shouldCancel = true;
                 }
-            } catch (Exception ignored) {}
-        }
+            }
 
-        // 发送包处理 (Client -> Server)
-        else if (event.getType() == EventType.SEND) {
-            if (p instanceof C02PacketUseEntity) {
-                C02PacketUseEntity wrapper = (C02PacketUseEntity) p;
-
-                if (onlyCombat.getValue() && wrapper.getAction() != C02PacketUseEntity.Action.ATTACK)
-                    return;
-
-                Entity entity = wrapper.getEntityFromWorld(mc.theWorld);
-                if (entity instanceof EntityPlayer) {
-                    EntityPlayer player = (EntityPlayer) entity;
-
-                    if (target != null && player.getEntityId() == target.getEntityId()) {
-                        attackTicks = 0;
-                        return;
-                    }
-
-                    target = player;
-                    vec3 = lastVec3 = player.getPositionVector();
-                    positionHistory.clear();
-                    recentPositions.clear();
-                    positionHistory.add(new Vec3(vec3.xCoord, vec3.yCoord, vec3.zCoord));
-                    recentPositions.add(new Vec3(vec3.xCoord, vec3.yCoord, vec3.zCoord));
-                    attackTicks = 0;
-                }
+            if (shouldCancel) {
+                packetQueue.add(new TimedPacket(packet));
+                event.setCancelled(true);
             }
         }
     }
 
-    @SubscribeEvent
-    public void onWorldChange(WorldEvent.Load event) {
-        if (disableOnWorldChange.getValue() && moduleActive) {
-            toggle();
-        }
-    }
-
-    private void releaseAllImmediately() {
+    private void releaseAll() {
         if (!packetQueue.isEmpty()) {
-            // 创建临时队列以避免并发修改异常
-            Queue<TimedPacket> tempQueue = new ConcurrentLinkedQueue<>();
-            tempQueue.addAll(packetQueue);
+            for (TimedPacket timedPacket : packetQueue) {
+                Packet<?> packet = timedPacket.packet;
+                skipPackets.add(packet);
+                handlePacket(packet);
+            }
             packetQueue.clear();
+        }
+    }
 
-            // 按顺序处理数据包
-            while (!tempQueue.isEmpty()) {
-                TimedPacket tp = tempQueue.poll();
-                try {
-                    processPacketLocallyImmediately(tp.packet);
-                } catch (Exception e) {
-                    // 忽略异常
-                }
+    private void handlePacket(Packet<?> packet) {
+        if (!this.isEnabled() || mc.thePlayer == null) return;
+        if (mc.getNetHandler() != null) {
+            try {
+                ((Packet<INetHandlerPlayClient>) packet).processPacket(mc.getNetHandler());
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
 
-    private void processPacketLocallyImmediately(Packet<?> packet) {
-        try {
-            if (mc.theWorld == null || mc.getNetHandler() == null) {
-                return;
-            }
-
-            // 直接发送数据包，不进行任何处理
-            if (packet instanceof Packet) {
-                Packet rawPacket = (Packet) packet;
-                rawPacket.processPacket(mc.getNetHandler());
-            }
-        } catch (Exception e) {
-            // 忽略异常
-        }
-    }
-
-    private void processPacketLocally(Packet<?> packet) {
-        try {
-            if (mc.theWorld == null || mc.getNetHandler() == null) {
-                return;
-            }
-
-            // 安全处理数据包
-            if (packet instanceof Packet) {
-                Packet rawPacket = (Packet) packet;
-                rawPacket.processPacket(mc.getNetHandler());
-            }
-        } catch (Exception e) {
-            // 忽略异常
-        }
-    }
-
-    // 内部类
     private static class TimedPacket {
-        public final Packet<?> packet;
-        public final long timestamp;
-        public TimedPacket(Packet<?> packet, long timestamp) {
+        private final Packet<?> packet;
+        private final TimerUtil timer;
+
+        public TimedPacket(Packet<?> packet) {
             this.packet = packet;
-            this.timestamp = timestamp;
+            this.timer = new TimerUtil();
+            this.timer.reset();
         }
     }
 }

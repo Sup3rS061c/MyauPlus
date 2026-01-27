@@ -1,7 +1,9 @@
 package myau.events;
 
+import lombok.Getter;
 import myau.event.events.Event;
 
+@Getter
 public class Render3DEvent implements Event {
     private final float partialTicks;
 
@@ -9,7 +11,4 @@ public class Render3DEvent implements Event {
         this.partialTicks = partialTicks;
     }
 
-    public float getPartialTicks() {
-        return this.partialTicks;
-    }
 }

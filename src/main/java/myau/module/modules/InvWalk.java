@@ -29,11 +29,11 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class InvWalk extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private final Queue<C0EPacketClickWindow> clickQueue = new ConcurrentLinkedQueue<C0EPacketClickWindow>();
+    public final ModeProperty mode = new ModeProperty("mode", 1, new String[]{"VANILLA", "BRAINSPOOF", "HYPIXEL"});
+    private final Queue<C0EPacketClickWindow> clickQueue = new ConcurrentLinkedQueue<>();
     private boolean keysPressed = false;
     private C16PacketClientStatus pendingStatus = null;
     private int delayTicks = 0;
-    public final ModeProperty mode = new ModeProperty("mode", 1, new String[]{"VANILLA", "BRAINSPOOF", "HYPIXEL"});
 
     public InvWalk() {
         super("InvWalk", "Allows you to walk while in inventories.", Category.MOVEMENT, 0, false, false);

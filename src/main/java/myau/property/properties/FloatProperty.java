@@ -1,10 +1,12 @@
 package myau.property.properties;
 
 import com.google.gson.JsonObject;
+import lombok.Getter;
 import myau.property.Property;
 
 import java.util.function.BooleanSupplier;
 
+@Getter
 public class FloatProperty extends Property<Float> {
     private final Float minimum;
     private final Float maximum;
@@ -44,11 +46,4 @@ public class FloatProperty extends Property<Float> {
         jsonObject.addProperty(this.getName(), this.getValue());
     }
 
-    public Float getMinimum() {
-        return this.minimum;
-    }
-
-    public Float getMaximum() {
-        return this.maximum;
-    }
 }

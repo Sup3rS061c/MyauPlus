@@ -4,9 +4,9 @@ import lombok.Getter;
 import myau.Myau;
 import myau.module.modules.NotificationModule;
 import myau.util.RenderUtil;
-import myau.util.ShadowUtil;
 import myau.util.font.FontManager;
 import myau.util.font.impl.FontRenderer;
+import myau.util.shader.ShadowShader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 import org.lwjgl.opengl.GL11;
@@ -16,22 +16,18 @@ import java.awt.*;
 @Getter
 public class Notification {
     private static final Minecraft mc = Minecraft.getMinecraft();
-
-    private float height = 30.0f;
-
+    private static final FontRenderer ICON_FONT = FontManager.noti20;
+    private static final FontRenderer TITLE_FONT = FontManager.tenacity20;
+    private static final FontRenderer DESC_FONT = FontManager.tenacity16;
     private final NotificationType notificationType;
     private final String title;
     private final String description;
     private final float maxTime;
     private final long startTime;
-
+    private float height = 30.0f;
     private float animationX;
     private float animationY;
     private boolean showing = true;
-
-    private static final FontRenderer ICON_FONT = FontManager.noti20;
-    private static final FontRenderer TITLE_FONT = FontManager.tenacity20;
-    private static final FontRenderer DESC_FONT = FontManager.tenacity16;
 
     public Notification(NotificationType type, String title, String description, long time) {
         this.notificationType = type;
@@ -101,13 +97,13 @@ public class Notification {
 
         int accentColor = notificationType.getColor().getRGB();
         int descColor = new Color(180, 180, 180).getRGB();
-        float progress = Math.max(0, Math.min(1, 1.0f - (float)elapsed / maxTime));
+        float progress = Math.max(0, Math.min(1, 1.0f - (float) elapsed / maxTime));
 
         GL11.glPushMatrix();
 
         // 通用黑色阴影逻辑 (部分模式除外)
         if (shadowEnabled && !mode.equals("Clean") && !mode.equals("Glow")) {
-            ShadowUtil.drawShadow(renderX, renderY, width, height, 4.0f, 6.0f, new Color(0, 0, 0, 120).getRGB());
+            ShadowShader.drawShadow(renderX, renderY, width, height, 4.0f, 6.0f, new Color(0, 0, 0, 120).getRGB());
         }
 
         switch (mode) {
@@ -117,7 +113,8 @@ public class Notification {
                 drawIconAndText(renderX, renderY, height, accentColor, -1, descColor, true);
                 if (!timeUp) {
                     float barWidth = (width - 4.0f) * progress;
-                    if (barWidth > 0) RenderUtil.drawRect(renderX + 2.5f, renderY + height - 1f, renderX + 2.5f + barWidth, renderY + height, accentColor);
+                    if (barWidth > 0)
+                        RenderUtil.drawRect(renderX + 2.5f, renderY + height - 1f, renderX + 2.5f + barWidth, renderY + height, accentColor);
                 }
                 break;
 
@@ -130,7 +127,8 @@ public class Notification {
                 break;
 
             case "Clean":
-                if (shadowEnabled) ShadowUtil.drawShadow(renderX, renderY, width, height, 3.0f, 8.0f, new Color(200, 200, 200, 100).getRGB());
+                if (shadowEnabled)
+                    ShadowShader.drawShadow(renderX, renderY, width, height, 3.0f, 8.0f, new Color(200, 200, 200, 100).getRGB());
                 RenderUtil.drawRoundedRect(renderX, renderY, width, height, 3.0f, new Color(250, 250, 250).getRGB(), true, true, true, true);
                 drawIconAndText(renderX, renderY, height, accentColor, new Color(40, 40, 40).getRGB(), new Color(100, 100, 100).getRGB(), false);
                 break;
@@ -143,8 +141,8 @@ public class Notification {
 
                 // 图标绘制在左侧中心，使用白色
                 String splitIcon = getIconChar(false); // 用简洁图标
-                float sIconX = (float) (renderX + height/2.0f - ICON_FONT.getStringWidth(splitIcon)/2.0f);
-                float sIconY = (float) (renderY + height/2.0f - ICON_FONT.getHeight()/2.0f + 1);
+                float sIconX = (float) (renderX + height / 2.0f - ICON_FONT.getStringWidth(splitIcon) / 2.0f);
+                float sIconY = (float) (renderY + height / 2.0f - ICON_FONT.getHeight() / 2.0f + 1);
                 ICON_FONT.drawString(splitIcon, sIconX, sIconY, -1);
 
                 // 文字绘制
@@ -156,7 +154,7 @@ public class Notification {
             case "Glow": // [新增] 柔光模式：背景半透黑，阴影为主题色
                 // 主题色光晕
                 if (shadowEnabled) {
-                    ShadowUtil.drawShadow(renderX, renderY, width, height, 4.0f, 12.0f, accentColor);
+                    ShadowShader.drawShadow(renderX, renderY, width, height, 4.0f, 12.0f, accentColor);
                 }
                 RenderUtil.drawRoundedRect(renderX, renderY, width, height, 4.0f, new Color(15, 15, 15, 240).getRGB(), true, true, true, true);
                 // 底部荧光条
@@ -173,7 +171,7 @@ public class Notification {
                 // 紧凑排版：图标缩小或微调位置
                 String cpIcon = getIconChar(false);
                 float cpIconW = (float) ICON_FONT.getStringWidth(cpIcon);
-                float cpIconY = (float) (renderY + height/2.0f - ICON_FONT.getHeight()/2.0f + 1);
+                float cpIconY = (float) (renderY + height / 2.0f - ICON_FONT.getHeight() / 2.0f + 1);
                 ICON_FONT.drawString(cpIcon, renderX + 6, cpIconY, accentColor);
 
                 // 标题和描述更紧凑
@@ -222,8 +220,8 @@ public class Notification {
         float iconY = (float) (y + (h - ICON_FONT.getHeight()) / 2.0f + 1.0f);
         ICON_FONT.drawString(iconStr, x + 8, iconY, iconColor);
 
-        TITLE_FONT.drawString(title, textStartX, y + (h/2) - 8, titleColor);
-        DESC_FONT.drawString(description, textStartX, y + (h/2) + 2, descColor);
+        TITLE_FONT.drawString(title, textStartX, y + (h / 2) - 8, titleColor);
+        DESC_FONT.drawString(description, textStartX, y + (h / 2) + 2, descColor);
     }
 
     private float lerp(float current, float target, float speed) {
@@ -265,7 +263,8 @@ public class Notification {
             case WARNING:
             case ERROR:
                 return circleStyle ? "I" : "U";
-            default: return "H";
+            default:
+                return "H";
         }
     }
 }

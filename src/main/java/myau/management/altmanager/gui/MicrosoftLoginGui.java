@@ -1,28 +1,26 @@
 package myau.management.altmanager.gui;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import myau.management.altmanager.Alt;
 import myau.management.altmanager.AltManagerGui;
-import myau.management.altmanager.SessionUtil;
-import myau.management.altmanager.util.AltJsonHandler;
+import myau.management.altmanager.auth.MicrosoftAuthResult;
+import myau.management.altmanager.auth.MicrosoftAuthenticator;
 import myau.ui.impl.gui.BackgroundRenderer;
 import myau.util.font.FontManager;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
-import net.minecraft.util.Session;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 public class MicrosoftLoginGui extends GuiScreen {
     private final AltManagerGui parent;
-    private GuiButton loginButton, backButton;
     private GuiTextField tokenField;
 
     public MicrosoftLoginGui(AltManagerGui parent) {
@@ -31,7 +29,7 @@ public class MicrosoftLoginGui extends GuiScreen {
 
     @Override
     public void initGui() {
-        
+
         int centerX = this.width / 2;
         int fieldWidth = 150;
         int fieldHeight = 20;
@@ -43,8 +41,8 @@ public class MicrosoftLoginGui extends GuiScreen {
         this.tokenField = new GuiTextField(0, this.fontRendererObj, centerX - (fieldWidth / 2), baseY, fieldWidth, fieldHeight);
         this.tokenField.setMaxStringLength(32767);
         // 使用 .trim() 去除可能的首尾空格
-        this.loginButton = new GuiButton(0, centerX - (buttonWidth / 2), baseY + fieldHeight + 10, buttonWidth, buttonHeight, "Login");
-        this.backButton = new GuiButton(1, centerX - (buttonWidth / 2), baseY + fieldHeight + 40, buttonWidth, buttonHeight, "Back");
+        GuiButton loginButton = new GuiButton(0, centerX - (buttonWidth / 2), baseY + fieldHeight + 10, buttonWidth, buttonHeight, "Login");
+        GuiButton backButton = new GuiButton(1, centerX - (buttonWidth / 2), baseY + fieldHeight + 40, buttonWidth, buttonHeight, "Back");
 
         this.buttonList.add(loginButton);
         this.buttonList.add(backButton);
@@ -52,7 +50,7 @@ public class MicrosoftLoginGui extends GuiScreen {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        BackgroundRenderer.draw(this.width, this.height, mouseX, mouseY);
+        BackgroundRenderer.draw(this.width, this.height);
         if (FontManager.productSans20 != null) {
             FontManager.productSans20.drawCenteredString("Token Login", this.width / 2.0f, 20, 0xFFFFFF);
             FontManager.productSans20.drawString("Current Alt: §a" + mc.getSession().getUsername(), 5, 5, 0xAAAAAA);
@@ -64,7 +62,7 @@ public class MicrosoftLoginGui extends GuiScreen {
         }
         this.tokenField.drawTextBox();
         super.drawScreen(mouseX, mouseY, partialTicks);
-        
+
         // Draw status text again to ensure it's on top of everything
         if (FontManager.productSans20 != null) {
             FontManager.productSans20.drawString("Current Alt: §a" + mc.getSession().getUsername(), 5, 5, 0xAAAAAA);
@@ -102,64 +100,89 @@ public class MicrosoftLoginGui extends GuiScreen {
     }
 
     private void loginWithToken(String token) {
-        // 设置状态为正在登录
-        AltManagerGui.status = "§eLogging in...";
+        AltManagerGui.status = "§eAnalyzing Token...";
+        final String cleanToken = token.trim();
 
         new Thread(() -> {
             try {
-                // 这一步可能会抛出异常（如果 Token 无效）
-                String[] playerInfo = getProfileInfo(token);
+                // 第一步：如果是超长的 JWT，这通常是最终的 Minecraft Token 或 微软 Access Token
+                if (cleanToken.startsWith("eyJ") || cleanToken.length() > 500) {
+                    AltManagerGui.status = "§eAttempting Direct Login...";
+                    try {
+                        String[] profile = getProfileInfo(cleanToken); // 尝试直接获取 profile
+                        handleLoginSuccess(cleanToken, profile[0], profile[1]);
+                        return;
+                    } catch (IOException e) {
+                        // 如果报 401，说明它是微软 Token，需要走完整的微软链（本代码暂未实现该特定路径）
+                        mc.addScheduledTask(() -> AltManagerGui.status = "§cInvalid Access Token (401)");
+                        return;
+                    }
+                }
 
-                String username = playerInfo[0];
-                String uuid = playerInfo[1];
-
-                Session newSession = new Session(username, uuid, token, "mojang");
+                // 第二步：如果是你提供的这种 mCgg... 格式，尝试作为 Refresh Token 刷新
+                AltManagerGui.status = "§eRefreshing Microsoft Session...";
+                MicrosoftAuthenticator auth = new MicrosoftAuthenticator();
 
                 try {
-                    SessionUtil.setSession(mc, newSession);
-
-                    mc.addScheduledTask(() -> {
-                        // 登录成功逻辑
-                        AltManagerGui.status = "§aLogged in as " + newSession.getUsername();
-
-                        // 更新或添加账号逻辑
-                        Alt existingAlt = null;
-                        for (Alt alt : AltManagerGui.alts) {
-                            if (alt.getName().equals(newSession.getUsername()) ||
-                                    (alt.getUuid() != null && alt.getUuid().equals(newSession.getPlayerID()))) {
-                                existingAlt = alt;
-                                break;
-                            }
-                        }
-
-                        if (existingAlt != null) {
-                            existingAlt.setUuid(newSession.getPlayerID());
-                            existingAlt.setRefreshToken(token);
-                            existingAlt.setBanned(myau.management.altmanager.AccountData.isBanned(newSession.getUsername()));
-                        } else {
-                            Alt alt = new Alt(newSession.getUsername(), "", newSession.getUsername(), false);
-                            alt.setUuid(newSession.getPlayerID());
-                            alt.setRefreshToken(token);
-                            alt.setBanned(myau.management.altmanager.AccountData.isBanned(newSession.getUsername()));
-                            AltManagerGui.alts.add(alt);
-                        }
-
-                        AltJsonHandler.start();
-                        AltJsonHandler.saveAlts();
-                        AltJsonHandler.loadAlts();
-
-                        this.mc.displayGuiScreen(parent);
-                    });
+                    // 如果这里报 400，说明这个 Token 的 ClientID 不匹配或已彻底失效
+                    MicrosoftAuthResult result = auth.loginWithRefreshToken(cleanToken);
+                    if (result != null) {
+                        handleLoginSuccess(result.getAccessToken(), result.getProfile().getName(), result.getProfile().getId());
+                    }
                 } catch (Exception e) {
-                    mc.addScheduledTask(() -> AltManagerGui.status = "§cSession Error");
-                    e.printStackTrace();
+                    // 捕获 400 错误
+                    if (e.getMessage().contains("400")) {
+                        mc.addScheduledTask(() -> AltManagerGui.status = "§cBad Request (400): Token Incompatible");
+                    } else {
+                        throw e;
+                    }
                 }
+
             } catch (Exception e) {
-                // 捕获 getProfileInfo 抛出的异常，提示 Token 无效
-                mc.addScheduledTask(() -> AltManagerGui.status = "§cInvalid Token / API Error");
                 e.printStackTrace();
+                mc.addScheduledTask(() -> AltManagerGui.status = "§cLogin Failed");
             }
         }).start();
+    }
+
+    private void handleLoginSuccess(String token, String username, String uuid) {
+        // 1. 创建 Minecraft Session
+        net.minecraft.util.Session newSession = new net.minecraft.util.Session(username, uuid, token, "mojang");
+
+        try {
+            // 2. 反射或通过工具类设置当前游戏的 Session
+            myau.management.altmanager.SessionUtil.setSession(mc, newSession);
+
+            mc.addScheduledTask(() -> {
+                AltManagerGui.status = "§aLogged in as " + username;
+
+                // 3. 更新账号列表逻辑
+                myau.management.altmanager.Alt existingAlt = null;
+                for (myau.management.altmanager.Alt alt : AltManagerGui.alts) {
+                    if (alt.getName().equals(username)) {
+                        existingAlt = alt;
+                        break;
+                    }
+                }
+
+                if (existingAlt != null) {
+                    existingAlt.setUuid(uuid);
+                    existingAlt.setRefreshToken(token);
+                } else {
+                    myau.management.altmanager.Alt alt = new myau.management.altmanager.Alt(username, "", username, false);
+                    alt.setUuid(uuid);
+                    alt.setRefreshToken(token);
+                    AltManagerGui.alts.add(alt);
+                }
+
+                // 4. 保存到文件并返回主界面
+                myau.management.altmanager.util.AltJsonHandler.saveAlts();
+                this.mc.displayGuiScreen(parent);
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+            mc.addScheduledTask(() -> AltManagerGui.status = "§cSession Switch Failed");
+        }
     }
 
     // --- 重点修复部分 ---

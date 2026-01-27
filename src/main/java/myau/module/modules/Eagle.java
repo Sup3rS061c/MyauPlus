@@ -19,12 +19,16 @@ import java.util.Objects;
 
 public class Eagle extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private int sneakDelay = 0;
     public final IntProperty minDelay = new IntProperty("min-delay", 2, 0, 10);
     public final IntProperty maxDelay = new IntProperty("max-delay", 3, 0, 10);
     public final BooleanProperty directionCheck = new BooleanProperty("direction-check", true);
     public final BooleanProperty pitchCheck = new BooleanProperty("pitch-check", true);
     public final BooleanProperty blocksOnly = new BooleanProperty("blocks-only", true);
+    private int sneakDelay = 0;
+
+    public Eagle() {
+        super("Eagle", "Automatically sneaks at the edge of blocks.", Category.MOVEMENT, 0, false, false);
+    }
 
     private boolean canMoveSafely() {
         double[] offset = MoveUtil.predictMovement();
@@ -39,10 +43,6 @@ public class Eagle extends Module {
         } else {
             return (!this.blocksOnly.getValue() || ItemUtil.isHoldingBlock()) && mc.thePlayer.onGround;
         }
-    }
-
-    public Eagle() {
-        super("Eagle", "Automatically sneaks at the edge of blocks.", Category.MOVEMENT, 0, false, false);
     }
 
     @EventTarget(Priority.LOWEST)

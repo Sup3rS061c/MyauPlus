@@ -14,15 +14,15 @@ import net.minecraft.util.MovingObjectPosition.MovingObjectType;
 
 public class AutoTool extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private int currentToolSlot = -1;
-    private int previousSlot = -1;
-    private int tickDelayCounter = 0;
     public final IntProperty switchDelay = new IntProperty("delay", 0, 0, 5);
     public final BooleanProperty switchBack = new BooleanProperty("switch-back", true);
     public final BooleanProperty sneakOnly = new BooleanProperty("sneak-only", true);
+    private int currentToolSlot = -1;
+    private int previousSlot = -1;
+    private int tickDelayCounter = 0;
 
     public AutoTool() {
-        super("AutoTool","Auto Switch to tools to break blocks",Category.WORLD,0,false,false);
+        super("AutoTool", "Auto Switch to tools to break blocks", Category.WORLD, 0, false, false);
     }
 
     @EventTarget

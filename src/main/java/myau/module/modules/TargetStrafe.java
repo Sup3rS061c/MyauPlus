@@ -9,10 +9,11 @@ import myau.events.Render3DEvent;
 import myau.events.StrafeEvent;
 import myau.events.UpdateEvent;
 import myau.module.Module;
-import myau.util.*;
-import myau.property.properties.*;
 import myau.property.properties.BooleanProperty;
+import myau.property.properties.FloatProperty;
+import myau.property.properties.IntProperty;
 import myau.property.properties.ModeProperty;
+import myau.util.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
@@ -23,15 +24,19 @@ import java.util.ArrayList;
 
 public class TargetStrafe extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private EntityLivingBase target = null;
-    @Getter
-    private float targetYaw = Float.NaN;
-    private int direction = 1;
     public final FloatProperty radius = new FloatProperty("radius", 1.0F, 0.0F, 6.0F);
     public final IntProperty points = new IntProperty("points", 6, 3, 24);
     public final BooleanProperty requirePress = new BooleanProperty("require-press", true);
     public final BooleanProperty speedOnly = new BooleanProperty("speed-only", true);
     public final ModeProperty showTarget = new ModeProperty("show-target", 1, new String[]{"NONE", "DEFAULT", "HUD"});
+    private EntityLivingBase target = null;
+    @Getter
+    private float targetYaw = Float.NaN;
+    private int direction = 1;
+
+    public TargetStrafe() {
+        super("TargetStrafe", false);
+    }
 
     private boolean canStrafe() {
         if (this.speedOnly.getValue()) {
@@ -90,10 +95,6 @@ public class TargetStrafe extends Module {
         } else {
             return index >= size ? 0 : index;
         }
-    }
-
-    public TargetStrafe() {
-        super("TargetStrafe", false);
     }
 
     @EventTarget(Priority.HIGHEST)

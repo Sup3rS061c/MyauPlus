@@ -15,7 +15,7 @@ public class AntiObbyTrap extends Module {
     public final BooleanProperty setAir = new BooleanProperty("set-air", true);
 
     public AntiObbyTrap() {
-        super("AntiObbyTrap","idk what does it do,maybe it can show some kinds of traps",Category.PLAYER,0,false,false);
+        super("AntiObbyTrap", "idk what does it do,maybe it can show some kinds of traps", Category.PLAYER, 0, false, false);
     }
 
     public boolean isInsideBlock(World world, BlockPos blockPos) {

@@ -13,8 +13,8 @@ import net.minecraft.entity.ai.attributes.IAttributeInstance;
 
 public class Sprint extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private boolean wasSprinting = false;
     public final BooleanProperty foxFix = new BooleanProperty("fov-fix", true);
+    private boolean wasSprinting = false;
 
     public Sprint() {
         super("Sprint", "Automatically sprints for you.", Category.MOVEMENT, 0, true, true);

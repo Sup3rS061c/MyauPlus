@@ -1,5 +1,7 @@
 package myau.event.events;
 
+import lombok.Getter;
+
 /**
  * The most basic form of an stoppable Event.
  * Stoppable events are called seperate from other events and the calling of methods is stopped
@@ -8,7 +10,13 @@ package myau.event.events;
  * @author DarkMagician6
  * @since 26-9-13
  */
+@Getter
 public abstract class EventStoppable implements Event {
+    /**
+     * -- GETTER --
+     * Checks the stopped boolean.
+     *
+     */
     private boolean stopped;
 
     /**
@@ -17,19 +25,4 @@ public abstract class EventStoppable implements Event {
     protected EventStoppable() {
     }
 
-    /**
-     * Sets the stopped state to true.
-     */
-    public void stop() {
-        stopped = true;
-    }
-
-    /**
-     * Checks the stopped boolean.
-     *
-     * @return True if the EventStoppable is stopped.
-     */
-    public boolean isStopped() {
-        return stopped;
-    }
 }

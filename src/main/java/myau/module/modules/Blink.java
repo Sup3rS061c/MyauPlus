@@ -17,7 +17,7 @@ public class Blink extends Module {
     public final IntProperty ticks = new IntProperty("ticks", 200, 0, 12000);
 
     public Blink() {
-        super("Blink", "The Flash",Category.WORLD,0,false,false);
+        super("Blink", "The Flash", Category.WORLD, 0, false, false);
     }
 
     @EventTarget(Priority.LOWEST)

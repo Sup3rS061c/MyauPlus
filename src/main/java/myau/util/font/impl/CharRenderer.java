@@ -23,11 +23,10 @@ public class CharRenderer {
         this.fractionalMetrics = fractionalMetrics;
         this.tex = this.setupTexture(font, antiAlias, fractionalMetrics, this.charData);
     }
-    
-    // 添加释放资源的方法
+
     public void destroy() {
         if (this.tex != null) {
-            this.tex.deleteGlTexture(); // 释放OpenGL纹理资源
+            this.tex.deleteGlTexture();
         }
     }
 
@@ -58,7 +57,7 @@ public class CharRenderer {
             char c = (char) index;
             CharData charData = new CharData();
             Rectangle2D dimensions = fontMetrics.getStringBounds(String.valueOf(c), graphics);
-            charData.width = dimensions.getBounds().width + 8;
+            charData.width = dimensions.getBounds().width + 8; // 保留你的原始逻辑
             charData.height = dimensions.getBounds().height;
 
             if (positionX + charData.width >= imgSize) {
@@ -118,10 +117,7 @@ public class CharRenderer {
     public void setAntiAlias(boolean antiAlias) {
         if (this.antiAlias != antiAlias) {
             this.antiAlias = antiAlias;
-            // 释放旧纹理
-            if (this.tex != null) {
-                this.tex.deleteGlTexture();
-            }
+            if (this.tex != null) this.tex.deleteGlTexture();
             this.tex = this.setupTexture(this.font, antiAlias, this.fractionalMetrics, this.charData);
         }
     }
@@ -129,26 +125,19 @@ public class CharRenderer {
     public void setFractionalMetrics(boolean fractionalMetrics) {
         if (this.fractionalMetrics != fractionalMetrics) {
             this.fractionalMetrics = fractionalMetrics;
-            // 释放旧纹理
-            if (this.tex != null) {
-                this.tex.deleteGlTexture();
-            }
+            if (this.tex != null) this.tex.deleteGlTexture();
             this.tex = this.setupTexture(this.font, this.antiAlias, fractionalMetrics, this.charData);
         }
     }
 
     public void setFont(Font font) {
         this.font = font;
-        // 释放旧纹理
-        if (this.tex != null) {
-            this.tex.deleteGlTexture();
-        }
+        if (this.tex != null) this.tex.deleteGlTexture();
         this.tex = this.setupTexture(font, this.antiAlias, this.fractionalMetrics, this.charData);
     }
 
     public static class CharData {
-        public int width, height,
-                storedX, storedY;
+        public int width, height, storedX, storedY;
 
         protected CharData() {
         }

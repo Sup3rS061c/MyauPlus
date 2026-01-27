@@ -9,10 +9,9 @@ import net.minecraft.client.gui.ScaledResolution;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class NotificationManager {
-    private static final Minecraft mc = Minecraft.getMinecraft();
-
     // 使用并发队列，线程安全
     public static final ConcurrentLinkedDeque<Notification> notifications = new ConcurrentLinkedDeque<>();
+    private static final Minecraft mc = Minecraft.getMinecraft();
 
     public static void post(NotificationType type, String title, String description) {
         // 默认 2000ms
@@ -45,7 +44,7 @@ public class NotificationManager {
         float startY;
         NotificationModule module = (NotificationModule) Myau.moduleManager.modules.get(NotificationModule.class);
         boolean isTop = module != null && module.positionY.getValue() == 0; // 0 表示 TOP
-        
+
         if (isTop) {
             startY = 50; // 距离顶部 50px
         } else {
@@ -63,7 +62,7 @@ public class NotificationManager {
 
         // 3. 遍历渲染
         float currentY = startY;
-        
+
         // 获取间距设置
         float padding = (module != null) ? module.spacing.getValue() : 6.0f; // 通知之间的垂直间距
 

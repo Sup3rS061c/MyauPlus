@@ -20,4 +20,5 @@ public class RandomUtil {
     public static int nextInt(int min, int max) {
         return theRandom.nextInt(max - min + 1) + min;
     }
+
 }

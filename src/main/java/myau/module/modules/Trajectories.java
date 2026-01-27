@@ -31,7 +31,7 @@ public class Trajectories extends Module {
     public final BooleanProperty pearls = new BooleanProperty("pearls", true);
 
     public Trajectories() {
-        super("Trajectories","Trajectories",Category.RENDER,0, false, true);
+        super("Trajectories", "Trajectories", Category.RENDER, 0, false, true);
     }
 
     @EventTarget

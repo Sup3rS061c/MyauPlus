@@ -35,6 +35,10 @@ public class Tracers extends Module {
     public final BooleanProperty showEnemies = new BooleanProperty("enemies", true);
     public final BooleanProperty showBots = new BooleanProperty("bots", false);
 
+    public Tracers() {
+        super("Tracers", "Tracers", Category.RENDER, 0, false, false);
+    }
+
     private boolean shouldRender(EntityPlayer entityPlayer) {
         if (entityPlayer.deathTime > 0) {
             return false;
@@ -74,10 +78,6 @@ public class Tracers extends Module {
                     return new Color(1.0F, 1.0F, 1.0F, alpha);
             }
         }
-    }
-
-    public Tracers() {
-        super("Tracers","Tracers",Category.RENDER,0,false,false);
     }
 
     @EventTarget

@@ -1,10 +1,12 @@
 package myau.property.properties;
 
 import com.google.gson.JsonObject;
+import lombok.Getter;
 import myau.property.Property;
 
 import java.util.function.BooleanSupplier;
 
+@Getter
 public class IntProperty extends Property<Integer> {
     private final Integer minimum;
     private final Integer maximum;
@@ -46,11 +48,4 @@ public class IntProperty extends Property<Integer> {
         jsonObject.addProperty(this.getName(), this.getValue());
     }
 
-    public Integer getMinimum() {
-        return this.minimum;
-    }
-
-    public Integer getMaximum() {
-        return this.maximum;
-    }
 }

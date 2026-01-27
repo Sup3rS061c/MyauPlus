@@ -4,6 +4,7 @@ import myau.enums.ChatColors;
 import myau.mixin.IAccessorEntityRenderer;
 import myau.mixin.IAccessorMinecraft;
 import myau.mixin.IAccessorRenderManager;
+import myau.util.shader.ShaderUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
@@ -35,6 +36,38 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class RenderUtil {
+    private static final String ROUNDED_RECT_SRC =
+            "#version 120\n" +
+                    "uniform vec2 location, rectSize;\n" +
+                    "uniform vec4 color;\n" +
+                    "uniform float radius;\n" +
+                    "uniform bool blur;\n" +
+                    "float roundSDF(vec2 p, vec2 b, float r) { return length(max(abs(p) - b, 0.0)) - r; }\n" +
+                    "void main() {\n" +
+                    "    vec2 rectHalf = rectSize * .5;\n" +
+                    "    float smoothedAlpha =  (1.0-smoothstep(0.0, 1.0, roundSDF(rectHalf - (gl_TexCoord[0].st * rectSize), rectHalf - radius - 1., radius))) * color.a;\n" +
+                    "    gl_FragColor = vec4(color.rgb, smoothedAlpha);\n" +
+                    "}";
+
+    private static final String MULTI_RADIUS_SRC =
+            "#version 120\n" +
+                    "uniform vec2 location, rectSize;\n" +
+                    "uniform vec4 color;\n" +
+                    "uniform float radiusTopLeft, radiusTopRight, radiusBottomLeft, radiusBottomRight;\n" +
+                    "float roundedBoxSDF(vec2 p, vec2 b, float r) { return length(max(abs(p) - b, 0.0)) - r; }\n" +
+                    "void main() {\n" +
+                    "    vec2 rectHalf = rectSize * 0.5;\n" +
+                    "    vec2 pos = rectHalf - (gl_TexCoord[0].st * rectSize);\n" +
+                    "    float r = (pos.x > 0.0) ? ((pos.y > 0.0) ? radiusTopLeft : radiusBottomLeft) : ((pos.y > 0.0) ? radiusTopRight : radiusBottomRight);\n" +
+                    "    float smoothedAlpha = (1.0 - smoothstep(0.0, 1.0, roundedBoxSDF(pos, rectHalf - r - 0.5, r))) * color.a;\n" +
+                    "    gl_FragColor = vec4(color.rgb, smoothedAlpha);\n" +
+                    "}";
+
+    // --- 修改：使用字符串初始化，并增加 multiRadiusShader 的静态实例 ---
+    private static final ShaderUtil roundedShader = new ShaderUtil(ROUNDED_RECT_SRC);
+    private static final ShaderUtil multiRadiusShader = new ShaderUtil(MULTI_RADIUS_SRC);
+    // -----------------------------------------------------------
+
     private static Minecraft mc;
     private static Frustum cameraFrustum;
     private static IntBuffer viewportBuffer;
@@ -42,9 +75,6 @@ public class RenderUtil {
     private static FloatBuffer projectionBuffer;
     private static FloatBuffer vectorBuffer;
     private static Map<Integer, EnchantmentData> enchantmentMap;
-
-    // Shader 实例 (保留用于绘制背景等)
-    private static final ShaderUtil roundedShader = new ShaderUtil("myau/shader/roundedRect.fsh");
 
     static {
         RenderUtil.mc = Minecraft.getMinecraft();
@@ -56,44 +86,49 @@ public class RenderUtil {
         RenderUtil.enchantmentMap = new EnchantmentMap();
     }
 
-    /**
-     * 绘制圆角头像 (终极修复版)
-     * 使用 GL_POLYGON 绘制单一大轮廓，配合强制状态重置。
-     * 无论切换什么模式，无论 CULL_FACE 状态如何，都能保证形状完整。
-     */
+    public static void drawImage(ResourceLocation image, float x, float y, float x2, float y2, int color1, int color2, int color3, int color4) {
+        mc.getTextureManager().bindTexture(image);
+        GL11.glBegin(GL11.GL_QUADS);
+        setColor(color1);
+        GL11.glTexCoord2f(0, 0);
+        GL11.glVertex2f(x, y);
+        setColor(color2);
+        GL11.glTexCoord2f(0, 1);
+        GL11.glVertex2f(x, y2);
+        setColor(color3);
+        GL11.glTexCoord2f(1, 1);
+        GL11.glVertex2f(x2, y2);
+        setColor(color4);
+        GL11.glTexCoord2f(1, 0);
+        GL11.glVertex2f(x2, y);
+        GL11.glEnd();
+        GlStateManager.resetColor();
+    }
+
     public static void drawRoundedHead(ResourceLocation skin, float x, float y, float width, float height, float radius) {
-        // 1. 检查 FBO 状态
         checkStencil();
 
-        // 2. 备份当前 GL 状态 (非常重要，防止影响后续渲染)
         boolean needRestoreCull = GL11.glIsEnabled(GL11.GL_CULL_FACE);
         boolean needRestoreAlpha = GL11.glIsEnabled(GL11.GL_ALPHA_TEST);
 
         GlStateManager.pushMatrix();
 
-        // 3. 准备 Stencil
-        // 清除 Stencil 缓冲，防止上一帧的残留干扰
         GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
         GL11.glEnable(GL11.GL_STENCIL_TEST);
         GL11.glStencilFunc(GL11.GL_ALWAYS, 1, 0xFF);
         GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
-        GL11.glStencilMask(0xFF); // 允许写入
+        GL11.glStencilMask(0xFF);
 
-        // 4. 强制设置绘制遮罩所需的 GL 状态
-        GlStateManager.colorMask(false, false, false, false); // 不写颜色
-        GlStateManager.disableTexture2D(); // 不贴图
-        GlStateManager.disableLighting();  // 不光照
-        GlStateManager.disableAlpha();     // 关掉 Alpha Test，确保 alpha=0 也能写入 Stencil
+        GlStateManager.colorMask(false, false, false, false);
+        GlStateManager.disableTexture2D();
+        GlStateManager.disableLighting();
+        GlStateManager.disableAlpha();
 
-        // --- 关键修复：强制关闭剔除 ---
-        // 这能解决 "右边圆角消失" 的问题，无论顶点顺序顺时针还是逆时针，都会显示
         GlStateManager.disableCull();
 
-        // 5. 绘制遮罩 (使用单一大轮廓)
         drawSolidRoundedRect(x, y, width, height, radius);
 
-        // 6. 恢复状态，准备绘制图片
-        if (needRestoreCull) GlStateManager.enableCull(); // 恢复之前的剔除状态
+        if (needRestoreCull) GlStateManager.enableCull();
         if (needRestoreAlpha) GlStateManager.enableAlpha();
 
         GlStateManager.colorMask(true, true, true, true);
@@ -101,55 +136,38 @@ public class RenderUtil {
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
 
-        // 7. 设置 Stencil 匹配条件
         GL11.glStencilFunc(GL11.GL_EQUAL, 1, 0xFF);
-        GL11.glStencilMask(0x00); // 锁住 Stencil
+        GL11.glStencilMask(0x00);
 
-        // 8. 绘制头像
         GlStateManager.color(1, 1, 1, 1);
         mc.getTextureManager().bindTexture(skin);
-        // 使用浮点坐标绘制
         drawScaledCustomSizeModalRect(x, y, 8, 8, 8, 8, width, height, 64, 64);
         drawScaledCustomSizeModalRect(x, y, 40, 8, 8, 8, width, height, 64, 64);
 
-        // 9. 结束清理
         GL11.glDisable(GL11.GL_STENCIL_TEST);
         GlStateManager.popMatrix();
     }
 
-    /**
-     * 内部专用：绘制实心圆角多边形
-     * 不使用拼接，而是画一个闭合的环，确保不会出现接缝或剔除问题
-     */
     private static void drawSolidRoundedRect(float x, float y, float width, float height, float radius) {
-        // 限制半径
         float r = Math.min(radius, Math.min(width, height) / 2.0f);
 
-        // 开始绘制多边形
         GL11.glBegin(GL11.GL_POLYGON);
 
-        // 1. 左上角 (Top-Left) - 180度到270度 (注意：Y向下，270是上)
-        // 逆时针顺序绘制：左上 -> 左下 -> 右下 -> 右上
-
-        // 左上角弧线
         for (int i = 180; i <= 270; i += 5) {
             double rad = Math.toRadians(i);
             GL11.glVertex2d(x + r + Math.cos(rad) * r, y + r + Math.sin(rad) * r);
         }
 
-        // 右上角弧线 (270度到360度)
         for (int i = 270; i <= 360; i += 5) {
             double rad = Math.toRadians(i);
             GL11.glVertex2d(x + width - r + Math.cos(rad) * r, y + r + Math.sin(rad) * r);
         }
 
-        // 右下角弧线 (0度到90度)
         for (int i = 0; i <= 90; i += 5) {
             double rad = Math.toRadians(i);
             GL11.glVertex2d(x + width - r + Math.cos(rad) * r, y + height - r + Math.sin(rad) * r);
         }
 
-        // 左下角弧线 (90度到180度)
         for (int i = 90; i <= 180; i += 5) {
             double rad = Math.toRadians(i);
             GL11.glVertex2d(x + r + Math.cos(rad) * r, y + height - r + Math.sin(rad) * r);
@@ -158,9 +176,6 @@ public class RenderUtil {
         GL11.glEnd();
     }
 
-    /**
-     * 支持 Float 坐标的图片绘制方法，防止动画抖动
-     */
     public static void drawScaledCustomSizeModalRect(float x, float y, float u, float v, float uWidth, float vHeight, float width, float height, float tileWidth, float tileHeight) {
         float f = 1.0F / tileWidth;
         float f1 = 1.0F / tileHeight;
@@ -174,9 +189,6 @@ public class RenderUtil {
         tessellator.draw();
     }
 
-    /**
-     * 检查并初始化 FBO 的 Stencil Buffer
-     */
     private static void checkStencil() {
         Framebuffer fbo = mc.getFramebuffer();
         if (fbo != null && fbo.depthBuffer > -1) {
@@ -190,10 +202,6 @@ public class RenderUtil {
         }
     }
 
-    // =========================================================================
-    //                            SHADERS & RECTANGLES
-    // =========================================================================
-
     /**
      * 绘制圆角矩形 (使用 Shader) - 用于背景板等
      */
@@ -205,7 +213,7 @@ public class RenderUtil {
 
         roundedShader.init();
 
-        setupRoundedRectUniforms(x, y, width, height, radius, roundedShader);
+        setupRoundedRectUniforms(x, y, width, height, radius);
         roundedShader.setUniformi("blur", blur ? 1 : 0);
         roundedShader.setUniformf("color", color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, color.getAlpha() / 255f);
 
@@ -215,24 +223,16 @@ public class RenderUtil {
         GlStateManager.disableBlend();
     }
 
-    private static void setupRoundedRectUniforms(float x, float y, float width, float height, float radius, ShaderUtil successShader) {
+    private static void setupRoundedRectUniforms(float x, float y, float width, float height, float radius) {
         ScaledResolution sr = new ScaledResolution(mc);
-        successShader.setUniformf("location", x * sr.getScaleFactor(), (mc.displayHeight - (height * sr.getScaleFactor())) - (y * sr.getScaleFactor()));
-        successShader.setUniformf("rectSize", width * sr.getScaleFactor(), height * sr.getScaleFactor());
-        successShader.setUniformf("radius", radius * sr.getScaleFactor());
-    }
-
-    public static void drawQuads(float x, float y, float width, float height) {
-        GL11.glBegin(GL11.GL_QUADS);
-        GL11.glTexCoord2f(0, 0); GL11.glVertex2f(x, y);
-        GL11.glTexCoord2f(0, 1); GL11.glVertex2f(x, y + height);
-        GL11.glTexCoord2f(1, 1); GL11.glVertex2f(x + width, y + height);
-        GL11.glTexCoord2f(1, 0); GL11.glVertex2f(x + width, y);
-        GL11.glEnd();
+        RenderUtil.roundedShader.setUniformf("location", x * sr.getScaleFactor(), (mc.displayHeight - (height * sr.getScaleFactor())) - (y * sr.getScaleFactor()));
+        RenderUtil.roundedShader.setUniformf("rectSize", width * sr.getScaleFactor(), height * sr.getScaleFactor());
+        RenderUtil.roundedShader.setUniformf("radius", radius * sr.getScaleFactor());
     }
 
     /**
      * 绘制普通圆角矩形 (使用 GL 顶点，不支持模糊，但兼容性更好)
+     * 保持原有实现不变
      */
     public static void drawRoundedRect(double x, double y, double width, double height, double radius, int color, boolean roundTopLeft, boolean roundTopRight, boolean roundBottomLeft, boolean roundBottomRight) {
         enableRenderState();
@@ -246,23 +246,21 @@ public class RenderUtil {
         Tessellator tessellator = Tessellator.getInstance();
         WorldRenderer worldrenderer = tessellator.getWorldRenderer();
 
-        // 中心填充
-        drawRect((float)(x + radius), (float)(y + radius), (float)(x + width - radius), (float)(y + height - radius), color);
-        drawRect((float)(x + radius), (float)y, (float)(x + width - radius), (float)(y + radius), color);
-        drawRect((float)(x + radius), (float)(y + height - radius), (float)(x + width - radius), (float)(y + height), color);
-        drawRect((float)x, (float)(y + radius), (float)(x + radius), (float)(y + height - radius), color);
-        drawRect((float)(x + width - radius), (float)(y + radius), (float)(x + width), (float)(y + height - radius), color);
+        drawRect((float) (x + radius), (float) (y + radius), (float) (x + width - radius), (float) (y + height - radius), color);
+        drawRect((float) (x + radius), (float) y, (float) (x + width - radius), (float) (y + radius), color);
+        drawRect((float) (x + radius), (float) (y + height - radius), (float) (x + width - radius), (float) (y + height), color);
+        drawRect((float) x, (float) (y + radius), (float) (x + radius), (float) (y + height - radius), color);
+        drawRect((float) (x + width - radius), (float) (y + radius), (float) (x + width), (float) (y + height - radius), color);
 
         enableRenderState();
 
-        float a = (float)(color >> 24 & 255) / 255.0F;
-        float r = (float)(color >> 16 & 255) / 255.0F;
-        float g = (float)(color >> 8 & 255) / 255.0F;
-        float b = (float)(color & 255) / 255.0F;
+        float a = (float) (color >> 24 & 255) / 255.0F;
+        float r = (float) (color >> 16 & 255) / 255.0F;
+        float g = (float) (color >> 8 & 255) / 255.0F;
+        float b = (float) (color & 255) / 255.0F;
 
         GlStateManager.color(r, g, b, a);
 
-        // 绘制四个角
         if (roundTopLeft) {
             worldrenderer.begin(GL11.GL_TRIANGLE_FAN, DefaultVertexFormats.POSITION);
             double centerX = x + radius;
@@ -274,7 +272,7 @@ public class RenderUtil {
             }
             tessellator.draw();
         } else {
-            drawRect((float)x, (float)y, (float)(x + radius), (float)(y + radius), color);
+            drawRect((float) x, (float) y, (float) (x + radius), (float) (y + radius), color);
             enableRenderState();
         }
 
@@ -289,7 +287,7 @@ public class RenderUtil {
             }
             tessellator.draw();
         } else {
-            drawRect((float)(x + width - radius), (float)y, (float)(x + width), (float)(y + radius), color);
+            drawRect((float) (x + width - radius), (float) y, (float) (x + width), (float) (y + radius), color);
             enableRenderState();
         }
 
@@ -304,7 +302,7 @@ public class RenderUtil {
             }
             tessellator.draw();
         } else {
-            drawRect((float)(x + width - radius), (float)(y + height - radius), (float)(x + width), (float)(y + height), color);
+            drawRect((float) (x + width - radius), (float) (y + height - radius), (float) (x + width), (float) (y + height), color);
             enableRenderState();
         }
 
@@ -319,76 +317,79 @@ public class RenderUtil {
             }
             tessellator.draw();
         } else {
-            drawRect((float)x, (float)(y + height - radius), (float)(x + radius), (float)(y + height), color);
+            drawRect((float) x, (float) (y + height - radius), (float) (x + radius), (float) (y + height), color);
             enableRenderState();
         }
 
         disableRenderState();
     }
 
-    // =========================================================================
-    //                            BASIC UTILITIES
-    // =========================================================================
+    /**
+     * 绘制圆角矩形，可以独立控制每个圆角的半径 (使用 Shader)
+     */
+    public static void drawRoundedRect(float x, float y, float width, float height,
+                                       float radiusTopLeft, float radiusTopRight,
+                                       float radiusBottomLeft, float radiusBottomRight,
+                                       int color) {
+        GlStateManager.resetColor();
+        GlStateManager.enableBlend();
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GlStateManager.alphaFunc(516, 0.0f);
+
+        // --- 核心修复：直接使用静态实例，不再 new ShaderUtil(路径) ---
+        multiRadiusShader.init();
+
+        ScaledResolution sr = new ScaledResolution(mc);
+        multiRadiusShader.setUniformf("location", x * sr.getScaleFactor(),
+                (mc.displayHeight - (height * sr.getScaleFactor())) - (y * sr.getScaleFactor()));
+        multiRadiusShader.setUniformf("rectSize", width * sr.getScaleFactor(), height * sr.getScaleFactor());
+
+        multiRadiusShader.setUniformf("radiusTopLeft", radiusTopLeft * sr.getScaleFactor());
+        multiRadiusShader.setUniformf("radiusTopRight", radiusTopRight * sr.getScaleFactor());
+        multiRadiusShader.setUniformf("radiusBottomLeft", radiusBottomLeft * sr.getScaleFactor());
+        multiRadiusShader.setUniformf("radiusBottomRight", radiusBottomRight * sr.getScaleFactor());
+
+        float a = (float) (color >> 24 & 255) / 255.0F;
+        float r = (float) (color >> 16 & 255) / 255.0F;
+        float g = (float) (color >> 8 & 255) / 255.0F;
+        float b = (float) (color & 255) / 255.0F;
+        multiRadiusShader.setUniformf("color", r, g, b, a);
+
+        drawQuads(x - 1, y - 1, width + 2, height + 2);
+
+        multiRadiusShader.unload();
+        // ---------------------------------------------------------
+
+        GlStateManager.disableBlend();
+    }
+
+    public static void drawQuads(float x, float y, float width, float height) {
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glTexCoord2f(0, 0);
+        GL11.glVertex2f(x, y);
+        GL11.glTexCoord2f(0, 1);
+        GL11.glVertex2f(x, y + height);
+        GL11.glTexCoord2f(1, 1);
+        GL11.glVertex2f(x + width, y + height);
+        GL11.glTexCoord2f(1, 0);
+        GL11.glVertex2f(x + width, y);
+        GL11.glEnd();
+    }
 
     private static ChatColors getColorForLevel(int currentLevel, int maxLevel) {
         if (currentLevel > maxLevel) return ChatColors.LIGHT_PURPLE;
         if (currentLevel == maxLevel) return ChatColors.RED;
         switch (currentLevel) {
-            case 1: return ChatColors.AQUA;
-            case 2: return ChatColors.GREEN;
-            case 3: return ChatColors.YELLOW;
-            case 4: return ChatColors.GOLD;
+            case 1:
+                return ChatColors.AQUA;
+            case 2:
+                return ChatColors.GREEN;
+            case 3:
+                return ChatColors.YELLOW;
+            case 4:
+                return ChatColors.GOLD;
         }
         return ChatColors.GRAY;
-    }
-
-    public static void drawCircle(float x, float y, float radius, int color) {
-        enableRenderState();
-        setColor(color);
-        GL11.glEnable(GL11.GL_POLYGON_SMOOTH);
-        GL11.glHint(GL11.GL_POLYGON_SMOOTH_HINT, GL11.GL_NICEST);
-        GL11.glBegin(GL11.GL_TRIANGLE_FAN);
-        GL11.glVertex2f(x, y);
-        for (int i = 0; i <= 360; i++) {
-            double angle = Math.toRadians(i);
-            GL11.glVertex2f(x + (float)(Math.cos(angle) * radius), y + (float)(Math.sin(angle) * radius));
-        }
-        GL11.glEnd();
-        GL11.glDisable(GL11.GL_POLYGON_SMOOTH);
-        disableRenderState();
-    }
-
-    public static void drawGradientCircle(float x, float y, float radius, int startColor, int endColor) {
-        enableRenderState();
-        GL11.glShadeModel(GL11.GL_SMOOTH);
-        float startA = (float)(startColor >> 24 & 255) / 255.0F;
-        float startR = (float)(startColor >> 16 & 255) / 255.0F;
-        float startG = (float)(startColor >> 8 & 255) / 255.0F;
-        float startB = (float)(startColor & 255) / 255.0F;
-        float endA = (float)(endColor >> 24 & 255) / 255.0F;
-        float endR = (float)(endColor >> 16 & 255) / 255.0F;
-        float endG = (float)(endColor >> 8 & 255) / 255.0F;
-        float endB = (float)(endColor & 255) / 255.0F;
-
-        GL11.glBegin(GL11.GL_TRIANGLE_FAN);
-        GlStateManager.color(startR, startG, startB, startA);
-        GL11.glVertex2f(x, y);
-
-        for (int i = 0; i <= 360; i++) {
-            double angle = Math.toRadians(i);
-            float currentX = x + (float)(Math.cos(angle) * radius);
-            float currentY = y + (float)(Math.sin(angle) * radius);
-            float t = (float)i / 360.0f;
-            float r = startR + (endR - startR) * t;
-            float g = startG + (endG - startG) * t;
-            float b = startB + (endB - startB) * t;
-            float a = startA + (endA - startA) * t;
-            GlStateManager.color(r, g, b, a);
-            GL11.glVertex2f(currentX, currentY);
-        }
-        GL11.glEnd();
-        GL11.glShadeModel(GL11.GL_FLAT);
-        disableRenderState();
     }
 
     public static void drawCircleOutline(float x, float y, float radius, float lineWidth, int color) {
@@ -400,53 +401,11 @@ public class RenderUtil {
         GL11.glBegin(GL11.GL_LINE_LOOP);
         for (int i = 0; i <= 360; i++) {
             double angle = Math.toRadians(i);
-            GL11.glVertex2f(x + (float)(Math.cos(angle) * radius), y + (float)(Math.sin(angle) * radius));
+            GL11.glVertex2f(x + (float) (Math.cos(angle) * radius), y + (float) (Math.sin(angle) * radius));
         }
         GL11.glEnd();
         GL11.glDisable(GL11.GL_LINE_SMOOTH);
         GL11.glLineWidth(1.0f);
-        disableRenderState();
-    }
-
-    public static void drawImage(ResourceLocation resource, float x, float y, float width, float height) {
-        try {
-            mc.getTextureManager().bindTexture(resource);
-            GL11.glEnable(GL11.GL_BLEND);
-            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-            GL11.glBegin(GL11.GL_QUADS);
-            GL11.glTexCoord2f(0, 0); GL11.glVertex2f(x, y);
-            GL11.glTexCoord2f(1, 0); GL11.glVertex2f(x + width, y);
-            GL11.glTexCoord2f(1, 1); GL11.glVertex2f(x + width, y + height);
-            GL11.glTexCoord2f(0, 1); GL11.glVertex2f(x, y + height);
-            GL11.glEnd();
-            GL11.glDisable(GL11.GL_BLEND);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void drawGradientRect(float x, float y, float width, float height, int startColor, int endColor) {
-        enableRenderState();
-        GL11.glShadeModel(GL11.GL_SMOOTH);
-        float startA = (float)(startColor >> 24 & 255) / 255.0F;
-        float startR = (float)(startColor >> 16 & 255) / 255.0F;
-        float startG = (float)(startColor >> 8 & 255) / 255.0F;
-        float startB = (float)(startColor & 255) / 255.0F;
-        float endA = (float)(endColor >> 24 & 255) / 255.0F;
-        float endR = (float)(endColor >> 16 & 255) / 255.0F;
-        float endG = (float)(endColor >> 8 & 255) / 255.0F;
-        float endB = (float)(endColor & 255) / 255.0F;
-
-        Tessellator tessellator = Tessellator.getInstance();
-        WorldRenderer worldrenderer = tessellator.getWorldRenderer();
-        worldrenderer.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        worldrenderer.pos(x + width, y, 0.0D).color(startR, startG, startB, startA).endVertex();
-        worldrenderer.pos(x, y, 0.0D).color(startR, startG, startB, startA).endVertex();
-        worldrenderer.pos(x, y + height, 0.0D).color(endR, endG, endB, endA).endVertex();
-        worldrenderer.pos(x + width, y + height, 0.0D).color(endR, endG, endB, endA).endVertex();
-        tessellator.draw();
-        GL11.glShadeModel(GL11.GL_FLAT);
         disableRenderState();
     }
 
@@ -528,10 +487,10 @@ public class RenderUtil {
             top = bottom;
             bottom = j;
         }
-        float f = (float)(color >> 24 & 255) / 255.0F;
-        float g = (float)(color >> 16 & 255) / 255.0F;
-        float h = (float)(color >> 8 & 255) / 255.0F;
-        float j = (float)(color & 255) / 255.0F;
+        float f = (float) (color >> 24 & 255) / 255.0F;
+        float g = (float) (color >> 16 & 255) / 255.0F;
+        float h = (float) (color >> 8 & 255) / 255.0F;
+        float j = (float) (color & 255) / 255.0F;
         Tessellator tessellator = Tessellator.getInstance();
         WorldRenderer worldRenderer = tessellator.getWorldRenderer();
         GlStateManager.enableBlend();
@@ -820,46 +779,6 @@ public class RenderUtil {
         return previous + (current - previous) * t;
     }
 
-    public static final class EnchantmentData {
-        public final String shortName;
-        public final int maxLevel;
-
-        public EnchantmentData(String shortName, int maxLevel) {
-            this.shortName = shortName;
-            this.maxLevel = maxLevel;
-        }
-    }
-
-    static final class EnchantmentMap extends HashMap<Integer, EnchantmentData> {
-        EnchantmentMap() {
-            this.put(0, new EnchantmentData("Pr", 4));
-            this.put(1, new EnchantmentData("Fp", 4));
-            this.put(2, new EnchantmentData("Ff", 4));
-            this.put(3, new EnchantmentData("Bp", 4));
-            this.put(4, new EnchantmentData("Pp", 4));
-            this.put(5, new EnchantmentData("Re", 3));
-            this.put(6, new EnchantmentData("Aq", 1));
-            this.put(7, new EnchantmentData("Th", 3));
-            this.put(8, new EnchantmentData("Ds", 3));
-            this.put(16, new EnchantmentData("Sh", 5));
-            this.put(17, new EnchantmentData("Sm", 5));
-            this.put(18, new EnchantmentData("BoA", 5));
-            this.put(19, new EnchantmentData("Kb", 2));
-            this.put(20, new EnchantmentData("Fa", 2));
-            this.put(21, new EnchantmentData("Lo", 3));
-            this.put(32, new EnchantmentData("Ef", 5));
-            this.put(33, new EnchantmentData("St", 1));
-            this.put(34, new EnchantmentData("Ub", 3));
-            this.put(35, new EnchantmentData("Fo", 3));
-            this.put(48, new EnchantmentData("Po", 5));
-            this.put(49, new EnchantmentData("Pu", 2));
-            this.put(50, new EnchantmentData("Fl", 1));
-            this.put(51, new EnchantmentData("Inf", 1));
-            this.put(61, new EnchantmentData("LoS", 3));
-            this.put(62, new EnchantmentData("Lu", 3));
-        }
-    }
-
     public static void drawRectOutline(double x, double y, double width, double height, float lineWidth, int color) {
         RenderUtil.enableRenderState();
         RenderUtil.setColor(color);
@@ -897,15 +816,12 @@ public class RenderUtil {
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
     }
 
-    /**
-     * 绘制可自定义四个角状态的圆角矩形描边
-     */
     public static void drawRoundedRectOutline(float x, float y, float width, float height, float radius, float lineWidth, int color, boolean topLeft, boolean topRight, boolean bottomLeft, boolean bottomRight) {
         radius = Math.min(radius, Math.min(width, height) / 2.0f);
-        float f = (float)(color >> 24 & 255) / 255.0F;
-        float f1 = (float)(color >> 16 & 255) / 255.0F;
-        float f2 = (float)(color >> 8 & 255) / 255.0F;
-        float f3 = (float)(color & 255) / 255.0F;
+        float f = (float) (color >> 24 & 255) / 255.0F;
+        float f1 = (float) (color >> 16 & 255) / 255.0F;
+        float f2 = (float) (color >> 8 & 255) / 255.0F;
+        float f3 = (float) (color & 255) / 255.0F;
         GlStateManager.enableBlend();
         GlStateManager.disableTexture2D();
         GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
@@ -954,5 +870,138 @@ public class RenderUtil {
         GL11.glDisable(GL11.GL_LINE_SMOOTH);
         GlStateManager.enableTexture2D();
         GlStateManager.disableBlend();
+    }
+
+    public static final class EnchantmentData {
+        public final String shortName;
+        public final int maxLevel;
+
+        public EnchantmentData(String shortName, int maxLevel) {
+            this.shortName = shortName;
+            this.maxLevel = maxLevel;
+        }
+    }
+
+    static final class EnchantmentMap extends HashMap<Integer, EnchantmentData> {
+        EnchantmentMap() {
+            this.put(0, new EnchantmentData("Pr", 4));
+            this.put(1, new EnchantmentData("Fp", 4));
+            this.put(2, new EnchantmentData("Ff", 4));
+            this.put(3, new EnchantmentData("Bp", 4));
+            this.put(4, new EnchantmentData("Pp", 4));
+            this.put(5, new EnchantmentData("Re", 3));
+            this.put(6, new EnchantmentData("Aq", 1));
+            this.put(7, new EnchantmentData("Th", 3));
+            this.put(8, new EnchantmentData("Ds", 3));
+            this.put(16, new EnchantmentData("Sh", 5));
+            this.put(17, new EnchantmentData("Sm", 5));
+            this.put(18, new EnchantmentData("BoA", 5));
+            this.put(19, new EnchantmentData("Kb", 2));
+            this.put(20, new EnchantmentData("Fa", 2));
+            this.put(21, new EnchantmentData("Lo", 3));
+            this.put(32, new EnchantmentData("Ef", 5));
+            this.put(33, new EnchantmentData("St", 1));
+            this.put(34, new EnchantmentData("Ub", 3));
+            this.put(35, new EnchantmentData("Fo", 3));
+            this.put(48, new EnchantmentData("Po", 5));
+            this.put(49, new EnchantmentData("Pu", 2));
+            this.put(50, new EnchantmentData("Fl", 1));
+            this.put(51, new EnchantmentData("Inf", 1));
+            this.put(61, new EnchantmentData("LoS", 3));
+            this.put(62, new EnchantmentData("Lu", 3));
+        }
+    }
+
+    public static void setupOrientationMatrix(double x, double y, double z) {
+        GL11.glTranslated(x, y, z);
+        GL11.glNormal3d(0, 1, 0);
+    }
+
+    public static void drawImage(ResourceLocation resource, float x, float y, float width, float height, int color) {
+        try {
+            mc.getTextureManager().bindTexture(resource);
+            GL11.glEnable(GL11.GL_BLEND);
+            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+            GL11.glColor4f((color >> 16 & 255) / 255.0F, (color >> 8 & 255) / 255.0F, (color & 255) / 255.0F, (color >> 24 & 255) / 255.0F);
+            GL11.glBegin(GL11.GL_QUADS);
+            GL11.glTexCoord2f(0, 0);
+            GL11.glVertex2f(x, y);
+            GL11.glTexCoord2f(1, 0);
+            GL11.glVertex2f(x + width, y);
+            GL11.glTexCoord2f(1, 1);
+            GL11.glVertex2f(x + width, y + height);
+            GL11.glTexCoord2f(0, 1);
+            GL11.glVertex2f(x, y + height);
+            GL11.glEnd();
+            GL11.glDisable(GL11.GL_BLEND);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void drawAxisAlignedBB(AxisAlignedBB aabb, boolean shade, int color) {
+        Tessellator tessellator = Tessellator.getInstance();
+        WorldRenderer worldrenderer = tessellator.getWorldRenderer();
+        float alpha = (float) (color >> 24 & 255) / 255.0F;
+        float red = (float) (color >> 16 & 255) / 255.0F;
+        float green = (float) (color >> 8 & 255) / 255.0F;
+        float blue = (float) (color & 255) / 255.0F;
+
+        GlStateManager.pushMatrix();
+        GlStateManager.enableBlend();
+        GlStateManager.disableLighting();
+        GlStateManager.disableCull();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.color(red, green, blue, alpha);
+        if (shade) {
+            GlStateManager.shadeModel(7425);
+        } else {
+            GlStateManager.shadeModel(7424);
+        }
+        worldrenderer.begin(7, DefaultVertexFormats.POSITION);
+        worldrenderer.pos(aabb.minX, aabb.minY, aabb.minZ).endVertex();
+        worldrenderer.pos(aabb.maxX, aabb.minY, aabb.minZ).endVertex();
+        worldrenderer.pos(aabb.maxX, aabb.minY, aabb.maxZ).endVertex();
+        worldrenderer.pos(aabb.minX, aabb.minY, aabb.maxZ).endVertex();
+        tessellator.draw();
+        worldrenderer.begin(7, DefaultVertexFormats.POSITION);
+        worldrenderer.pos(aabb.minX, aabb.maxY, aabb.maxZ).endVertex();
+        worldrenderer.pos(aabb.maxX, aabb.maxY, aabb.maxZ).endVertex();
+        worldrenderer.pos(aabb.maxX, aabb.maxY, aabb.minZ).endVertex();
+        worldrenderer.pos(aabb.minX, aabb.maxY, aabb.minZ).endVertex();
+        tessellator.draw();
+        if (shade) {
+            worldrenderer.begin(7, DefaultVertexFormats.POSITION);
+            worldrenderer.pos(aabb.minX, aabb.minY, aabb.maxZ).endVertex();
+            worldrenderer.pos(aabb.minX, aabb.maxY, aabb.maxZ).endVertex();
+            worldrenderer.pos(aabb.minX, aabb.maxY, aabb.minZ).endVertex();
+            worldrenderer.pos(aabb.minX, aabb.minY, aabb.minZ).endVertex();
+            tessellator.draw();
+            worldrenderer.begin(7, DefaultVertexFormats.POSITION);
+            worldrenderer.pos(aabb.maxX, aabb.minY, aabb.minZ).endVertex();
+            worldrenderer.pos(aabb.maxX, aabb.maxY, aabb.minZ).endVertex();
+            worldrenderer.pos(aabb.maxX, aabb.maxY, aabb.maxZ).endVertex();
+            worldrenderer.pos(aabb.maxX, aabb.minY, aabb.maxZ).endVertex();
+            tessellator.draw();
+        }
+        if (shade) {
+            worldrenderer.begin(7, DefaultVertexFormats.POSITION);
+            worldrenderer.pos(aabb.minX, aabb.maxY, aabb.minZ).endVertex();
+            worldrenderer.pos(aabb.maxX, aabb.maxY, aabb.minZ).endVertex();
+            worldrenderer.pos(aabb.maxX, aabb.minY, aabb.minZ).endVertex();
+            worldrenderer.pos(aabb.minX, aabb.minY, aabb.minZ).endVertex();
+            tessellator.draw();
+            worldrenderer.begin(7, DefaultVertexFormats.POSITION);
+            worldrenderer.pos(aabb.minX, aabb.minY, aabb.maxZ).endVertex();
+            worldrenderer.pos(aabb.maxX, aabb.minY, aabb.maxZ).endVertex();
+            worldrenderer.pos(aabb.maxX, aabb.maxY, aabb.maxZ).endVertex();
+            worldrenderer.pos(aabb.minX, aabb.maxY, aabb.maxZ).endVertex();
+            tessellator.draw();
+        }
+        GlStateManager.popMatrix();
+    }
+
+    public static float deltaTime() {
+        return ((IAccessorMinecraft) mc).getTimer().renderPartialTicks;
     }
 }

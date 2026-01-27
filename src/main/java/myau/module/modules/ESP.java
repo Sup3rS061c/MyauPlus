@@ -31,11 +31,6 @@ import java.util.stream.Collectors;
 
 public class ESP extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private final OutlineShader outlineRenderer = new OutlineShader();
-    private final GlowShader glowShader = new GlowShader();
-    private Framebuffer framebuffer = null;
-    private boolean outline = true;
-    private boolean glow = true;
     public final ModeProperty mode = new ModeProperty("mode", 2, new String[]{"NONE", "2D", "3D", "OUTLINE"});
     public final ModeProperty color = new ModeProperty("color", 0, new String[]{"DEFAULT", "TEAMS", "HUD"});
     public final ModeProperty healthBar = new ModeProperty("health-bar", 0, new String[]{"NONE", "2D", "RAVEN"});
@@ -44,6 +39,15 @@ public class ESP extends Module {
     public final BooleanProperty enemies = new BooleanProperty("enemies", true);
     public final BooleanProperty self = new BooleanProperty("self", false);
     public final BooleanProperty bots = new BooleanProperty("bots", false);
+    private final OutlineShader outlineRenderer = new OutlineShader();
+    private final GlowShader glowShader = new GlowShader();
+    private Framebuffer framebuffer = null;
+    private boolean outline = true;
+    private boolean glow = true;
+
+    public ESP() {
+        super("ESP", "Allows you to see entities through walls.", Category.RENDER, 0, false, false);
+    }
 
     private boolean shouldRenderPlayer(EntityPlayer entityPlayer) {
         if (entityPlayer.deathTime > 0) {
@@ -84,10 +88,6 @@ public class ESP extends Module {
                     return new Color(-1);
             }
         }
-    }
-
-    public ESP() {
-        super("ESP", "Allows you to see entities through walls.", Category.RENDER, 0, false, false);
     }
 
     public boolean isOutlineEnabled() {

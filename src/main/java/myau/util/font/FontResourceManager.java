@@ -11,7 +11,7 @@ import java.util.Set;
  */
 public class FontResourceManager {
     private static final Set<WeakReference<FontRenderer>> fontReferences = new HashSet<>();
-    
+
     /**
      * 注册字体渲染器引用，以便在需要时可以统一清理
      */
@@ -20,7 +20,7 @@ public class FontResourceManager {
             fontReferences.add(new WeakReference<>(fontRenderer));
         }
     }
-    
+
     /**
      * 清理所有注册的字体资源
      */
@@ -35,7 +35,7 @@ public class FontResourceManager {
             return true;
         });
     }
-    
+
     /**
      * 清理无效的引用（垃圾回收后的弱引用）
      */

@@ -24,7 +24,7 @@ public class Config {
         try {
             file.getParentFile().mkdirs();
             if (newConfig) {
-                ((IAccessorMinecraft) mc).getLogger().info(String.format("Created: %s", this.file.getName()));
+                ((IAccessorMinecraft) mc).getLogger().info("Created: {}", this.file.getName());
             }
         } catch (Exception e) {
             ((IAccessorMinecraft) mc).getLogger().error(e.getMessage());
@@ -36,16 +36,15 @@ public class Config {
             JsonElement parsed = new JsonParser().parse(new BufferedReader(new FileReader(file)));
             JsonObject jsonObject = parsed.getAsJsonObject();
             // Loading GUI state
-            
+
             // Load background shader index if it exists
             JsonElement backgroundIndexElement = jsonObject.get("background_index");
             if (backgroundIndexElement != null) {
                 BackgroundRenderer.currentBackgroundIndex = backgroundIndexElement.getAsInt();
                 BackgroundRenderer.reloadShader(BackgroundRenderer.currentBackgroundIndex);
             }
-            
+
             // Properties
-            JsonObject propertiesObject = jsonObject.getAsJsonObject("properties");
 
             for (Module module : Myau.moduleManager.modules.values()) {
                 JsonElement moduleObj = jsonObject.get(module.getName());
@@ -78,12 +77,11 @@ public class Config {
         try {
             JsonObject object = new JsonObject();
             // Saving GUI state
-            
+
             // Save background shader index
             object.addProperty("background_index", BackgroundRenderer.currentBackgroundIndex);
-            
+
             // Properties
-            JsonObject propertiesObject = new JsonObject();
 
             for (Module module : Myau.moduleManager.modules.values()) {
                 JsonObject moduleObject = new JsonObject();

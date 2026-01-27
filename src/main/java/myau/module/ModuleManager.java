@@ -12,8 +12,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
 public class ModuleManager {
-    private boolean sound = false;
     public final LinkedHashMap<Class<?>, Module> modules = new LinkedHashMap<>();
+    private boolean sound = false;
 
     public Module getModule(String string) {
         return this.modules.values().stream().filter(mD -> mD.getName().equalsIgnoreCase(string)).findFirst().orElse(null);
@@ -29,13 +29,10 @@ public class ModuleManager {
             if (module.getKey() != event.getKey()) {
                 continue;
             }
-            boolean wasEnabled = module.isEnabled();
             module.toggle();
 
-            // 发送模块切换通知
             NotificationModule notifModule = (NotificationModule) modules.get(NotificationModule.class);
             if (notifModule != null && notifModule.isEnabled() && notifModule.moduleToggle.getValue()) {
-                // 排除Notification模块自身的切换通知
                 if (!(module instanceof NotificationModule)) {
                     if (module.isEnabled()) {
                         NotificationRenderer.success(module.getName() + " Enabled", "Module has been turned on");

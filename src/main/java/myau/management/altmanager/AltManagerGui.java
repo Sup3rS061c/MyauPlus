@@ -1,41 +1,26 @@
 package myau.management.altmanager;
 
-import java.awt.Color;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
 import myau.management.altmanager.gui.CrackedLoginGui;
 import myau.management.altmanager.gui.MicrosoftLoginGui;
 import myau.management.altmanager.microsoft.MicrosoftOAuthTranslation;
 import myau.management.altmanager.util.AltJsonHandler;
-import myau.util.*;
 import myau.ui.impl.gui.BackgroundRenderer;
+import myau.util.RenderUtil;
 import myau.util.font.FontManager;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.FontRenderer;
-import org.lwjgl.opengl.GL11;
 import org.lwjgl.input.Mouse;
+import org.lwjgl.opengl.GL11;
+
+import java.awt.*;
+import java.io.IOException;
+import java.util.*;
+import java.util.List;
 
 public class AltManagerGui extends GuiScreen {
-    private GuiMainMenu parent;
-    private GuiButton loginButton, loginButton2, oauthButton, backButton, deleteBannedButton;
-    public static List<Alt> alts = new ArrayList<>();
-    public static String status = "§aIdle";
-
-    // Scrolling variables
-    private int scrollOffset = 0;
-    private double smoothScrollOffset = 0.0;
-    // Hover value tracking for account buttons (key: account index)
-    private final Map<Integer, Integer> accountHoverValues = new HashMap<>();
-    // Hover value tracking for delete buttons (key: account index)
-    private final Map<Integer, Integer> deleteHoverValues = new HashMap<>();
     private static final int ACCOUNT_BUTTON_HEIGHT = 40;
     private static final int ACCOUNT_BUTTON_WIDTH = 180;
     private static final int DELETE_BUTTON_WIDTH = 24;
@@ -44,6 +29,21 @@ public class AltManagerGui extends GuiScreen {
     private static final int COLUMN_SPACING = 15; // Increased spacing
     private static final int ROW_SPACING = 10; // Added row spacing
     private static final int SCROLL_AREA_TOP = 50;
+    public static List<Alt> alts = new ArrayList<>();
+    public static String status = "§aIdle";
+    // Hover value tracking for account buttons (key: account index)
+    private final Map<Integer, Integer> accountHoverValues = new HashMap<>();
+    // Hover value tracking for delete buttons (key: account index)
+    private final Map<Integer, Integer> deleteHoverValues = new HashMap<>();
+    private GuiMainMenu parent;
+    private GuiButton loginButton, loginButton2, oauthButton, backButton, deleteBannedButton;
+    // Scrolling variables
+    private int scrollOffset = 0;
+    private double smoothScrollOffset = 0.0;
+
+    public AltManagerGui(GuiMainMenu parent) {
+        this.parent = parent;
+    }
 
     private int getScrollAreaBottom() {
         // Leave space for buttons at bottom (adjusted for better layout)
@@ -58,21 +58,17 @@ public class AltManagerGui extends GuiScreen {
         return getVisibleRows() * COLUMNS;
     }
 
-    public AltManagerGui(GuiMainMenu parent) {
-        this.parent = parent;
-    }
-
     @Override
     public void initGui() {
         // Initialize smooth scroll offset to match current scroll offset
         smoothScrollOffset = scrollOffset;
-        
+
         // Load alts from file when initializing the GUI
         AltJsonHandler.loadAlts();
-        
+
         // Initialize background renderer
         BackgroundRenderer.init();
-        
+
         int centerX = this.width / 2;
         int buttonHeight = 20;
         int buttonSpacing = 25;
@@ -86,7 +82,7 @@ public class AltManagerGui extends GuiScreen {
         int totalButtonWidth = 400; // Total width for all buttons in row 1
         int singleButtonWidth = totalButtonWidth / 4; // ~100 pixels per button
         int startX = (this.width - totalButtonWidth) / 2; // Center the group of buttons
-        
+
         this.loginButton = new GuiButton(0, startX, baseY, singleButtonWidth - 5, buttonHeight,
                 "Add Cracked");
         this.loginButton2 = new GuiButton(1, startX + singleButtonWidth, baseY, singleButtonWidth - 5, buttonHeight,
@@ -136,9 +132,9 @@ public class AltManagerGui extends GuiScreen {
         } else {
             smoothScrollOffset = targetScroll;
         }
-        
+
         // Draw background first using BackgroundRenderer
-        BackgroundRenderer.draw(this.width, this.height, mouseX, mouseY);
+        BackgroundRenderer.draw(this.width, this.height);
 
         if (System.currentTimeMillis() - SessionChanger.instance().timeSinceFail < 5000
                 && SessionChanger.instance().timeSinceFail != 0) {
@@ -205,7 +201,7 @@ public class AltManagerGui extends GuiScreen {
             double smoothRow = accountRow - smoothScrollOffset;
             int accountX = startX + column * (ACCOUNT_BUTTON_WIDTH + COLUMN_SPACING);
             int yPos = (int) (SCROLL_AREA_TOP + smoothRow * (ACCOUNT_BUTTON_HEIGHT + ROW_SPACING));
-            
+
             // Skip rendering if outside visible area (for smooth scrolling)
             if (yPos + ACCOUNT_BUTTON_HEIGHT < SCROLL_AREA_TOP || yPos > getScrollAreaBottom()) {
                 continue;
@@ -266,12 +262,12 @@ public class AltManagerGui extends GuiScreen {
             double smoothRow = accountRow - smoothScrollOffset;
             int accountX = startX + column * (ACCOUNT_BUTTON_WIDTH + COLUMN_SPACING);
             int yPos = (int) (SCROLL_AREA_TOP + smoothRow * (ACCOUNT_BUTTON_HEIGHT + ROW_SPACING));
-            
+
             // Skip rendering if outside visible area (for smooth scrolling)
             if (yPos + ACCOUNT_BUTTON_HEIGHT < SCROLL_AREA_TOP || yPos > getScrollAreaBottom()) {
                 continue;
             }
-            
+
             int deleteX = accountX + ACCOUNT_BUTTON_WIDTH - DELETE_BUTTON_WIDTH - 4;
             int deleteY = yPos + (ACCOUNT_BUTTON_HEIGHT - DELETE_BUTTON_HEIGHT) / 2;
 
@@ -282,7 +278,7 @@ public class AltManagerGui extends GuiScreen {
             // Use fancy button style
             Color rectColor = new Color(35, 37, 43, currentHoverValue);
             rectColor = interpolateColor(rectColor, brighter(rectColor, 0.4f), -1);
-            
+
             // Draw visible outline
             RenderUtil.drawRoundedRectOutline(accountX, yPos, ACCOUNT_BUTTON_WIDTH, ACCOUNT_BUTTON_HEIGHT, 3.5F, 0.0015f,
                     rectColor.getRGB(), true, true, true, true);
@@ -297,7 +293,7 @@ public class AltManagerGui extends GuiScreen {
 
         // Restore GL state before drawing text
         GL11.glPopMatrix();
-        
+
         // Draw all text in a separate pass
         for (int i = startIndex; i < endIndex; i++) {
             Alt alt = alts.get(i);
@@ -315,7 +311,7 @@ public class AltManagerGui extends GuiScreen {
             double smoothRow = accountRow - smoothScrollOffset;
             int accountX = startX + column * (ACCOUNT_BUTTON_WIDTH + COLUMN_SPACING);
             int yPos = (int) (SCROLL_AREA_TOP + smoothRow * (ACCOUNT_BUTTON_HEIGHT + ROW_SPACING));
-            
+
             // Skip rendering if outside visible area (for smooth scrolling)
             if (yPos + ACCOUNT_BUTTON_HEIGHT < SCROLL_AREA_TOP || yPos > getScrollAreaBottom()) {
                 continue;
@@ -331,7 +327,7 @@ public class AltManagerGui extends GuiScreen {
             if (FontManager.productSans20 != null) {
                 // Prepare text content - just the name, no [BANNED] text
                 String nameText = alt.getName();
-                
+
                 // Truncate if too long to avoid delete button area
                 // Account for delete button width + padding
                 int availableWidth = ACCOUNT_BUTTON_WIDTH - DELETE_BUTTON_WIDTH - 20;
@@ -356,7 +352,7 @@ public class AltManagerGui extends GuiScreen {
                 } else {
                     nameColor = -1; // White for normal
                 }
-                
+
                 // Center the text by calculating the horizontal center position
                 int centeredX = (int) (textX - FontManager.productSans20.getStringWidth(nameText) / 2.0);
                 FontManager.productSans20.drawString(nameText, centeredX, (float) textY, nameColor);
@@ -378,10 +374,10 @@ public class AltManagerGui extends GuiScreen {
             } else {
                 // Fallback to standard Minecraft font renderer
                 FontRenderer fontRenderer = mc.fontRendererObj;
-                
+
                 // Prepare text content - just the name, no [BANNED] text
                 String nameText = alt.getName();
-                
+
                 // Truncate if too long to avoid delete button area
                 // Account for delete button width + padding
                 int availableWidth = ACCOUNT_BUTTON_WIDTH - DELETE_BUTTON_WIDTH - 20;
@@ -406,7 +402,7 @@ public class AltManagerGui extends GuiScreen {
                 } else {
                     nameColor = -1; // White for normal
                 }
-                
+
                 // Center the text by calculating the horizontal center position
                 int centeredX = (int) (textX - fontRenderer.getStringWidth(nameText) / 2.0);
                 fontRenderer.drawStringWithShadow(nameText, centeredX, (float) textY, nameColor);
@@ -646,21 +642,21 @@ public class AltManagerGui extends GuiScreen {
                 interpolateInt(color1.getBlue(), color2.getBlue(), amount),
                 interpolateInt(color1.getAlpha(), color2.getAlpha(), amount));
     }
-    
+
     // Helper method to brighten a color
     private Color brighter(Color color, float factor) {
         int r = color.getRed();
         int g = color.getGreen();
         int b = color.getBlue();
         int alpha = color.getAlpha();
-        
-        r = Math.min(255, (int)(r * (1 + factor)));
-        g = Math.min(255, (int)(g * (1 + factor)));
-        b = Math.min(255, (int)(b * (1 + factor)));
-        
+
+        r = Math.min(255, (int) (r * (1 + factor)));
+        g = Math.min(255, (int) (g * (1 + factor)));
+        b = Math.min(255, (int) (b * (1 + factor)));
+
         return new Color(r, g, b, alpha);
     }
-    
+
     // Helper method to interpolate integer values
     private int interpolateInt(int start, int end, float amount) {
         return (int) (start + amount * (end - start));

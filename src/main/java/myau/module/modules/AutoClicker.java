@@ -21,10 +21,6 @@ import java.util.Objects;
 
 public class AutoClicker extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private boolean clickPending = false;
-    private long clickDelay = 0L;
-    private boolean blockHitPending = false;
-    private long blockHitDelay = 0L;
     public final IntProperty minCPS = new IntProperty("min-cps", 8, 1, 20);
     public final IntProperty maxCPS = new IntProperty("max-cps", 12, 1, 20);
     public final BooleanProperty blockHit = new BooleanProperty("block-hit", false);
@@ -32,9 +28,17 @@ public class AutoClicker extends Module {
     public final BooleanProperty weaponsOnly = new BooleanProperty("weapons-only", true);
     public final BooleanProperty allowTools = new BooleanProperty("allow-tools", false, this.weaponsOnly::getValue);
     public final BooleanProperty breakBlocks = new BooleanProperty("break-blocks", true);
+    private boolean clickPending = false;
+    private long clickDelay = 0L;
+    private boolean blockHitPending = false;
+    private long blockHitDelay = 0L;
+
+    public AutoClicker() {
+        super("AutoClicker", "", Category.COMBAT, 0, false, false);
+    }
 
     private long getNextClickDelay() {
-        return 1000L / RandomUtil.nextLong(this.minCPS.getValue().intValue(), this.maxCPS.getValue().intValue());
+        return 1000L / RandomUtil.nextLong(this.minCPS.getValue(), this.maxCPS.getValue());
     }
 
     private long getBlockHitDelay() {
@@ -58,10 +62,6 @@ public class AutoClicker extends Module {
         } else {
             return false;
         }
-    }
-
-    public AutoClicker() {
-        super("AutoClicker","",Category.COMBAT,0,false,false);
     }
 
     @EventTarget

@@ -1,6 +1,7 @@
 package myau.util;
 
 import myau.mixin.IAccessorEntity;
+import myau.util.rotation.Rotation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.AxisAlignedBB;
@@ -10,6 +11,16 @@ import net.minecraft.util.Vec3;
 
 public class RotationUtil {
     private static final Minecraft mc = Minecraft.getMinecraft();
+
+    public static Rotation getRotationToEntity(Entity entity) {
+        double x = entity.posX - mc.thePlayer.posX;
+        double z = entity.posZ - mc.thePlayer.posZ;
+        double y = entity.posY + entity.getEyeHeight() * 0.9 - (mc.thePlayer.posY + mc.thePlayer.getEyeHeight());
+        double dist = MathHelper.sqrt_double(x * x + z * z);
+        float yaw = (float) (Math.atan2(z, x) * 180.0D / Math.PI) - 90.0F;
+        float pitch = (float) (-(Math.atan2(y, dist) * 180.0D / Math.PI));
+        return new Rotation(yaw, pitch);
+    }
 
     public static float wrapAngleDiff(float angle, float target) {
         return target + MathHelper.wrapAngleTo180_float(angle - target);

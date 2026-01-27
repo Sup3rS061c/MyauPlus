@@ -14,7 +14,7 @@ public class MCF extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
 
     public MCF() {
-        super("MCF", "",Category.MISC,0,false, true);
+        super("MCF", "", Category.MISC, 0, false, true);
     }
 
     @EventTarget

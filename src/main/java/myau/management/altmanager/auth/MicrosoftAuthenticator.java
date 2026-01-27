@@ -1,25 +1,20 @@
 package myau.management.altmanager.auth;
 
+import myau.management.altmanager.auth.model.request.MinecraftLoginRequest;
+import myau.management.altmanager.auth.model.request.XSTSAuthorizationProperties;
+import myau.management.altmanager.auth.model.request.XboxLiveLoginProperties;
+import myau.management.altmanager.auth.model.request.XboxLoginRequest;
+import myau.management.altmanager.auth.model.response.*;
+
 import java.io.UnsupportedEncodingException;
 import java.net.*;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import myau.management.altmanager.auth.model.request.MinecraftLoginRequest;
-import myau.management.altmanager.auth.model.request.XSTSAuthorizationProperties;
-import myau.management.altmanager.auth.model.request.XboxLiveLoginProperties;
-import myau.management.altmanager.auth.model.request.XboxLoginRequest;
-import myau.management.altmanager.auth.model.response.MicrosoftRefreshResponse;
-import myau.management.altmanager.auth.model.response.MinecraftLoginResponse;
-import myau.management.altmanager.auth.model.response.MinecraftProfile;
-import myau.management.altmanager.auth.model.response.MinecraftStoreResponse;
-import myau.management.altmanager.auth.model.response.XboxLoginResponse;
 public class MicrosoftAuthenticator {
     public static final String MICROSOFT_AUTHORIZATION_ENDPOINT = "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
     public static final String MICROSOFT_TOKEN_ENDPOINT = "https://login.live.com/oauth20_token.srf";
@@ -33,7 +28,7 @@ public class MicrosoftAuthenticator {
     public static final String XSTS_AUTHORIZATION_ENDPOINT = "https://xsts.auth.xboxlive.com/xsts/authorize";
     public static final String MINECRAFT_AUTH_ENDPOINT = "https://api.minecraftservices.com/authentication/login_with_xbox";
 
-    public static final String XBOX_LIVE_AUTH_RELAY = "http://auth.xboxlive.com";
+    public static final String XBOX_LIVE_AUTH_RELAY = "https://auth.xboxlive.com";
     public static final String MINECRAFT_AUTH_RELAY = "rp://api.minecraftservices.com/";
 
     public static final String MINECRAFT_STORE_ENDPOINT = "https://api.minecraftservices.com/entitlements/mcstore";
@@ -69,7 +64,7 @@ public class MicrosoftAuthenticator {
         }
 
         try {
-            return loginWithTokens(extractTokens(result.getURL().toString()),true);
+            return loginWithTokens(extractTokens(result.getURL().toString()), true);
         } catch (MicrosoftAuthenticationException e) {
             if (match("(identity/confirm)", http.readResponse(result)) != null) {
                 throw new MicrosoftAuthenticationException(
@@ -79,22 +74,6 @@ public class MicrosoftAuthenticator {
 
             throw e;
         }
-    }
-
-    public MicrosoftAuthResult loginWithWebview() throws MicrosoftAuthenticationException {
-        try {
-            return loginWithAsyncWebview().get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new MicrosoftAuthenticationException(e);
-        }
-    }
-
-    public CompletableFuture<MicrosoftAuthResult> loginWithAsyncWebview() {
-        if(!System.getProperty("java.version").startsWith("1."))
-            CookieHandler.setDefault(new CookieManager());
-
-        String url = String.format("%s?%s", MICROSOFT_AUTHORIZATION_ENDPOINT, http.buildParams(getLoginParams()));
-		return null;
     }
 
     /**
@@ -114,26 +93,14 @@ public class MicrosoftAuthenticator {
                 params, MicrosoftRefreshResponse.class
         );
 
-        return loginWithTokens(new AuthTokens(response.getAccessToken(), response.getRefreshToken()),true);
+        return loginWithTokens(new AuthTokens(response.getAccessToken(), response.getRefreshToken()), true);
     }
 
     /**
      * Logs in a player using a Microsoft account tokens retrieved earlier.
      * <b>If the token was retrieved using Azure AAD/MSAL, it should be prefixed with d=</b>
      *
-     * @param tokens Player Microsoft account tokens pair
-     * @return The player Minecraft profile
-     * @throws MicrosoftAuthenticationException Thrown if one of the several HTTP requests failed at some point
-     */
-    public MicrosoftAuthResult loginWithTokens(AuthTokens tokens) throws MicrosoftAuthenticationException {
-        return loginWithTokens(tokens,true);
-    }
-
-    /**
-     * Logs in a player using a Microsoft account tokens retrieved earlier.
-     * <b>If the token was retrieved using Azure AAD/MSAL, it should be prefixed with d=</b>
-     *
-     * @param tokens Player Microsoft account tokens pair
+     * @param tokens          Player Microsoft account tokens pair
      * @param retrieveProfile Whether to retrieve the player profile
      * @return The player Minecraft profile
      * @throws MicrosoftAuthenticationException Thrown if one of the several HTTP requests failed at some point

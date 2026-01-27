@@ -28,7 +28,7 @@ public class NotificationModule extends Module {
     public final BooleanProperty shadow = new BooleanProperty("Shadow", true);
     public final BooleanProperty moduleToggle = new BooleanProperty("Module Toggle", true);
     public final FloatProperty spacing = new FloatProperty("Spacing", 0.0f, 0.0f, 100.0f);
-    
+
     // 添加位置调节选项
     public final ModeProperty positionX = new ModeProperty("Position X", 1, new String[]{"LEFT", "RIGHT"});
     public final ModeProperty positionY = new ModeProperty("Position Y", 1, new String[]{"TOP", "BOTTOM"});

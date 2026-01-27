@@ -1,16 +1,23 @@
 package myau.management;
 
+import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.MathHelper;
 
 public class RotationState {
     private static final Minecraft mc = Minecraft.getMinecraft();
     private static int state = -1;
+    @Getter
     private static float prevRenderYawOffset;
+    @Getter
     private static float renderYawOffset;
+    @Getter
     private static float prevRotationYawHead;
+    @Getter
     private static float rotationYawHead;
+    @Getter
     private static float prevRotationPitch;
+    @Getter
     private static float rotationPitch;
     private static float smoothYaw;
     private static int priority;
@@ -26,7 +33,7 @@ public class RotationState {
             newYawOffset = targetYaw;
         }
         float f4 = MathHelper.wrapAngleTo180_float(newYawOffset - currentYawOffset);
-        float f5 = MathHelper.wrapAngleTo180_float(targetYaw - (currentYawOffset += f4 * 0.3f));
+        float f5 = MathHelper.wrapAngleTo180_float(targetYaw - (currentYawOffset + f4 * 0.3f));
         if (f5 < -75.0f) {
             f5 = -75.0f;
         }
@@ -59,30 +66,6 @@ public class RotationState {
     public static boolean isRotated(int state) {
         if (RotationState.state < 0) return false;
         return RotationState.state <= state;
-    }
-
-    public static float getPrevRenderYawOffset() {
-        return prevRenderYawOffset;
-    }
-
-    public static float getRenderYawOffset() {
-        return renderYawOffset;
-    }
-
-    public static float getPrevRotationYawHead() {
-        return prevRotationYawHead;
-    }
-
-    public static float getRotationYawHead() {
-        return rotationYawHead;
-    }
-
-    public static float getPrevRotationPitch() {
-        return prevRotationPitch;
-    }
-
-    public static float getRotationPitch() {
-        return rotationPitch;
     }
 
     public static float getSmoothedYaw() {

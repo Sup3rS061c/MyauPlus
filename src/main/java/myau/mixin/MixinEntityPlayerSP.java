@@ -27,6 +27,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @SideOnly(Side.CLIENT)
 @Mixin({EntityPlayerSP.class})
 public abstract class MixinEntityPlayerSP extends MixinEntityPlayer {
+    @Shadow
+    public float renderArmYaw;
+    @Shadow
+    public float prevRenderArmYaw;
     @Unique
     private float overrideYaw = Float.NaN;
     @Unique
@@ -39,10 +43,6 @@ public abstract class MixinEntityPlayerSP extends MixinEntityPlayer {
     private float lastReportedYaw;
     @Shadow
     private float lastReportedPitch;
-    @Shadow
-    public float renderArmYaw;
-    @Shadow
-    public float prevRenderArmYaw;
 
     @Inject(
             method = {"onUpdate"},

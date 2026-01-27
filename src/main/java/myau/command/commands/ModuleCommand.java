@@ -44,6 +44,7 @@ public class ModuleCommand extends Command {
                         return;
                     }
                 } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
                 ChatUtil.sendFormatted(
                         String.format("%sInvalid value for property &o%s&r (%s)&r", Myau.clientName, property.getName(), property.getValuePrompt())

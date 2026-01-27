@@ -14,6 +14,11 @@ public abstract class Shader {
     private final Map<String, Integer> uniformLocations;
     protected int programId;
 
+    public Shader(String string) {
+        this.uniformLocations = new HashMap<>();
+        this.createProgram(string);
+    }
+
     private int compileShader(String source, int type) {
         int shader = GL20.glCreateShader(type);
         GL20.glShaderSource(shader, source);
@@ -33,11 +38,6 @@ public abstract class Shader {
         } else {
             this.onLink();
         }
-    }
-
-    public Shader(String string) {
-        this.uniformLocations = new HashMap<>();
-        this.createProgram(string);
     }
 
     public int getUniformLocationCached(String name) {

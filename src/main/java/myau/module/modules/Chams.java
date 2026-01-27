@@ -32,6 +32,10 @@ public class Chams extends Module {
     public final BooleanProperty self = new BooleanProperty("self", false);
     public final BooleanProperty bots = new BooleanProperty("bots", false);
 
+    public Chams() {
+        super("Chams", "Renders entities through walls with color.", Category.RENDER, 0, false, false);
+    }
+
     private boolean shouldRenderChams(EntityLivingBase entityLivingBase) {
         if (entityLivingBase.deathTime > 0) {
             return false;
@@ -63,10 +67,6 @@ public class Chams extends Module {
         } else {
             return entityLivingBase instanceof EntityBlaze ? this.blaze.getValue() : this.mobs.getValue();
         }
-    }
-
-    public Chams() {
-        super("Chams", "Renders entities through walls with color.", Category.RENDER, 0, false, false);
     }
 
     @EventTarget

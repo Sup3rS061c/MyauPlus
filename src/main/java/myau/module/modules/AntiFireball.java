@@ -27,15 +27,19 @@ import java.util.stream.Collectors;
 
 public class AntiFireball extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private final ArrayList<EntityFireball> farList = new ArrayList<>();
-    private final ArrayList<EntityFireball> nearList = new ArrayList<>();
-    private EntityFireball target = null;
     public final FloatProperty range = new FloatProperty("range", 5.0F, 3.0F, 8.0F);
     public final IntProperty fov = new IntProperty("fov", 360, 1, 360);
     public final BooleanProperty rotations = new BooleanProperty("rotations", true);
     public final BooleanProperty swing = new BooleanProperty("swing", true);
     public final ModeProperty moveFix = new ModeProperty("move-fix", 1, new String[]{"NONE", "SILENT", "STRICT"});
     public final ModeProperty showTarget = new ModeProperty("show-target", 0, new String[]{"NONE", "DEFAULT", "HUD"});
+    private final ArrayList<EntityFireball> farList = new ArrayList<>();
+    private final ArrayList<EntityFireball> nearList = new ArrayList<>();
+    private EntityFireball target = null;
+
+    public AntiFireball() {
+        super("AntiFireball", "Fight back fireballs", Category.PLAYER, 0, false, false);
+    }
 
     private boolean isValidTarget(EntityFireball entityFireball) {
         return !entityFireball.getEntityBoundingBox().hasNaN() && RotationUtil.distanceToEntity(entityFireball) <= (double) this.range.getValue() + 3.0
@@ -48,10 +52,6 @@ public class AntiFireball extends Module {
         } else {
             PacketUtil.sendPacket(new C0APacketAnimation());
         }
-    }
-
-    public AntiFireball() {
-        super("AntiFireball", "Fight back fireballs",Category.PLAYER,0,false,false);
     }
 
     @EventTarget
@@ -97,7 +97,7 @@ public class AntiFireball extends Module {
                 }
                 if (!Myau.playerStateManager.attacking && !Myau.playerStateManager.digging && !Myau.playerStateManager.placing) {
                     this.doAttackAnimation();
-                    if (RotationUtil.distanceToEntity(this.target) <= (double) this.range.getValue().floatValue()) {
+                    if (RotationUtil.distanceToEntity(this.target) <= (double) this.range.getValue()) {
                         PacketUtil.sendPacket(new C02PacketUseEntity(this.target, Action.ATTACK));
                         PlayerUtil.attackEntity(this.target);
                     }

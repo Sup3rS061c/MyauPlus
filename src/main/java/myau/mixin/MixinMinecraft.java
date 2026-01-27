@@ -26,8 +26,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin({Minecraft.class})
 public abstract class MixinMinecraft {
     @Shadow
-    private int leftClickCounter;
-    @Shadow
     public PlayerControllerMP playerController;
     @Shadow
     public WorldClient theWorld;
@@ -35,6 +33,8 @@ public abstract class MixinMinecraft {
     public EntityPlayerSP thePlayer;
     @Shadow
     public GuiScreen currentScreen;
+    @Shadow
+    private int leftClickCounter;
 
     @Inject(
             method = {"startGame"},

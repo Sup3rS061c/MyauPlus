@@ -21,11 +21,15 @@ import net.minecraft.util.AxisAlignedBB;
 
 public class AntiVoid extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
+    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"BLINK"});
+    public final FloatProperty distance = new FloatProperty("distance", 5.0F, 0.0F, 16.0F);
     private boolean isInVoid = false;
     private boolean wasInVoid = false;
     private double[] lastSafePosition = null;
-    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"BLINK"});
-    public final FloatProperty distance = new FloatProperty("distance", 5.0F, 0.0F, 16.0F);
+
+    public AntiVoid() {
+        super("AntiVoid", "Prevents you from falling into the void.", Category.COMBAT, 0, false, false);
+    }
 
     private void resetBlink() {
         Myau.blinkManager.setBlinkState(false, BlinkModules.ANTI_VOID);
@@ -35,10 +39,6 @@ public class AntiVoid extends Module {
     private boolean canUseAntiVoid() {
         LongJump longJump = (LongJump) Myau.moduleManager.modules.get(LongJump.class);
         return !longJump.isJumping();
-    }
-
-    public AntiVoid() {
-        super("AntiVoid", "Prevents you from falling into the void.", Category.COMBAT, 0, false, false);
     }
 
     @EventTarget(Priority.LOWEST)
@@ -73,7 +73,7 @@ public class AntiVoid extends Module {
                 }
                 if (Myau.blinkManager.getBlinkingModule() == BlinkModules.ANTI_VOID
                         && this.lastSafePosition != null
-                        && this.lastSafePosition[1] - (double) this.distance.getValue().floatValue() > mc.thePlayer.posY) {
+                        && this.lastSafePosition[1] - (double) this.distance.getValue() > mc.thePlayer.posY) {
                     Myau.blinkManager
                             .blinkedPackets
                             .offerFirst(

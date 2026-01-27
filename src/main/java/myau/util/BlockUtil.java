@@ -107,4 +107,12 @@ public class BlockUtil {
         }
         return new Vec3((double) blockPos.getX() + block.getBlockBoundsMinX(), vec3.yCoord, vec3.zCoord);
     }
+
+    public static boolean isContainer(BlockPos pos) {
+        return isContainer(mc.theWorld.getBlockState(pos).getBlock());
+    }
+
+    public static boolean isContainer(Block block) {
+        return block instanceof BlockContainer;
+    }
 }

@@ -23,13 +23,23 @@ public enum ChatColors {
     UNDERLINE('n', 0),
     ITALIC('o', 0),
     RESET('r', 0);
+    public static final char COLOR_CHAR = '§';
     private final String colorCodes;
     private final int rgb;
-    public static final char COLOR_CHAR = '§';
 
     ChatColors(char colorChar, int rgb) {
         this.rgb = rgb;
         this.colorCodes = new String(new char[]{COLOR_CHAR, colorChar});
+    }
+
+    public static String formatColor(String string) {
+        char[] cArray = string.toCharArray();
+        for (int i = 0; i < cArray.length - 1; ++i) {
+            if (cArray[i] != '&' || "0123456789AaBbCcDdEeFfKkLlMmNnOoRr".indexOf(cArray[i + 1]) == -1) continue;
+            cArray[i] = COLOR_CHAR;
+            cArray[i + 1] = Character.toLowerCase(cArray[i + 1]);
+        }
+        return new String(cArray);
     }
 
     @Override
@@ -39,15 +49,5 @@ public enum ChatColors {
 
     public int toAwtColor() {
         return this.rgb;
-    }
-
-    public static String formatColor(String string) {
-        char[] cArray = string.toCharArray();
-        for (int i = 0; i < cArray.length - 1; ++i) {
-            if (cArray[i] != '&' || "0123456789AaBbCcDdEeFfKkLlMmNnOoRr".indexOf(cArray[i + 1]) <= -1) continue;
-            cArray[i] = COLOR_CHAR;
-            cArray[i + 1] = Character.toLowerCase(cArray[i + 1]);
-        }
-        return new String(cArray);
     }
 }

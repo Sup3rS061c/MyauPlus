@@ -22,12 +22,8 @@ import net.minecraft.item.*;
 import net.minecraft.world.WorldSettings.GameType;
 import org.apache.commons.lang3.RandomUtils;
 
-public class  ChestStealer extends Module {
+public class ChestStealer extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private int clickDelay = 0;
-    private int oDelay = 0;
-    private boolean inChest = false;
-    private boolean warnedFull = false;
     public final IntProperty minDelay = new IntProperty("min-delay", 1, 0, 20);
     public final IntProperty maxDelay = new IntProperty("max-delay", 2, 0, 20);
     public final IntProperty openDelay = new IntProperty("open-delay", 1, 0, 20);
@@ -36,6 +32,15 @@ public class  ChestStealer extends Module {
     public final BooleanProperty skipTrash = new BooleanProperty("skip-trash", true);
     public final BooleanProperty keepThrowables = new BooleanProperty("keep-throwables", false);
     public final BooleanProperty keepBows = new BooleanProperty("keep-bows", false);
+    private int clickDelay = 0;
+    private int oDelay = 0;
+    private boolean inChest = false;
+    private boolean warnedFull = false;
+
+    public ChestStealer() {
+        super("ChestStealer", "Auto steal good things in chests", Category.WORLD, 0, false, false);
+    }
+
     private boolean isValidGameMode() {
         GameType gameType = mc.playerController.getCurrentGameType();
         return gameType == GameType.SURVIVAL || gameType == GameType.ADVENTURE;
@@ -43,10 +48,6 @@ public class  ChestStealer extends Module {
 
     private void shiftClick(int windowId, int slotId) {
         mc.playerController.windowClick(windowId, slotId, 0, 1, mc.thePlayer);
-    }
-
-    public ChestStealer() {
-        super("ChestStealer","Auto steal good things in chests",Category.WORLD,0,false,false);
     }
 
     @EventTarget
@@ -83,9 +84,6 @@ public class  ChestStealer extends Module {
                                 if (!this.warnedFull) {
                                     ChatUtil.sendFormatted(String.format("%s%s: &cYour inventory is full!&r", Myau.clientName, this.getName()));
                                     this.warnedFull = true;
-                                }
-                                if (this.autoClose.getValue()) {
-                                    mc.thePlayer.closeScreen();
                                 }
                             } else {
                                 if (this.skipTrash.getValue()) {
@@ -181,9 +179,9 @@ public class  ChestStealer extends Module {
                                         }
                                     }
                                 }
-                                if (this.autoClose.getValue()) {
-                                    mc.thePlayer.closeScreen();
-                                }
+                            }
+                            if (this.autoClose.getValue()) {
+                                mc.thePlayer.closeScreen();
                             }
                         }
                     }
@@ -197,23 +195,23 @@ public class  ChestStealer extends Module {
         this.clickDelay = RandomUtils.nextInt(this.minDelay.getValue() + 1, this.maxDelay.getValue() + 2);
     }
 
-    private boolean shouldTakeItem(ItemStack stack){
-        if(stack == null) return false;
+    private boolean shouldTakeItem(ItemStack stack) {
+        if (stack == null) return false;
         Item item = stack.getItem();
-        if(this.skipTrash.getValue()){
-            if(this.keepBows.getValue()){
+        if (this.skipTrash.getValue()) {
+            if (this.keepBows.getValue()) {
                 if (item instanceof ItemBow || item == Items.arrow) return true;
             }
-            if(this.keepThrowables.getValue()){
-                if (item instanceof ItemSnowball || 
-                    item instanceof ItemEgg || 
-                    item instanceof ItemEnderPearl || 
-                    item instanceof ItemFireball ||
-                    item == Items.fire_charge) {
+            if (this.keepThrowables.getValue()) {
+                if (item instanceof ItemSnowball ||
+                        item instanceof ItemEgg ||
+                        item instanceof ItemEnderPearl ||
+                        item instanceof ItemFireball ||
+                        item == Items.fire_charge) {
                     return true;
                 }
             }
-            if(ItemUtil.isNotSpecialItem(stack)) return false;
+            return !ItemUtil.isNotSpecialItem(stack);
         }
         return true;
     }

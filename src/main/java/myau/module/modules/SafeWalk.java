@@ -24,6 +24,10 @@ public class SafeWalk extends Module {
     public final BooleanProperty requirePress = new BooleanProperty("require-press", false);
     public final BooleanProperty blocksOnly = new BooleanProperty("blocks-only", true);
 
+    public SafeWalk() {
+        super("SafeWalk", "Prevents you from falling off edges.", Category.MOVEMENT, 0, false, false);
+    }
+
     private boolean canSafeWalk() {
         Scaffold scaffold = (Scaffold) Myau.moduleManager.modules.get(Scaffold.class);
         if (scaffold.isEnabled()) {
@@ -38,10 +42,6 @@ public class SafeWalk extends Module {
             return (!this.requirePress.getValue() || mc.gameSettings.keyBindUseItem.isKeyDown()) && (mc.thePlayer.onGround && PlayerUtil.canMove(mc.thePlayer.motionX, mc.thePlayer.motionZ, -1.0)
                     || this.air.getValue() && PlayerUtil.canMove(mc.thePlayer.motionX, mc.thePlayer.motionZ, -2.0));
         }
-    }
-
-    public SafeWalk() {
-        super("SafeWalk", "Prevents you from falling off edges.", Category.MOVEMENT, 0, false, false);
     }
 
     @EventTarget

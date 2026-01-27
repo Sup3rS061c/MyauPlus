@@ -1,5 +1,6 @@
 package myau.management;
 
+import lombok.Getter;
 import myau.event.EventTarget;
 import myau.event.types.EventType;
 import myau.event.types.Priority;
@@ -14,6 +15,7 @@ public class RotationManager {
     private float yawDelta;
     private float pitchDelta;
     private int priority;
+    @Getter
     private boolean rotated;
 
     public RotationManager() {
@@ -58,10 +60,6 @@ public class RotationManager {
             this.rotated = force;
             this.applyRotation(0.0F);
         }
-    }
-
-    public boolean isRotated() {
-        return this.rotated;
     }
 
     @EventTarget(Priority.HIGHEST)

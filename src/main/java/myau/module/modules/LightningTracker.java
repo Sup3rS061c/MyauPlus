@@ -12,6 +12,10 @@ import net.minecraft.network.play.server.S2CPacketSpawnGlobalEntity;
 public class LightningTracker extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
 
+    public LightningTracker() {
+        super("LightningTracker", "Track Lightning.", Category.WORLD, 0, false, true);
+    }
+
     private String getDirection(double playerX, double playerZ, double lightningX, double lightningZ) {
         double threshold = Math.sqrt(2.0) - 1.0;
         double xDiff = lightningX - playerX;
@@ -35,10 +39,6 @@ public class LightningTracker extends Module {
         } else {
             return "?";
         }
-    }
-
-    public LightningTracker() {
-        super("LightningTracker","Track Lightning.",Category.WORLD,0, false, true);
     }
 
     @EventTarget

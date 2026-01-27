@@ -4,7 +4,6 @@ import java.awt.*;
 
 public class ColorUtil {
     public static final Color RED = new Color(255, 0, 0);
-    public static final Color GOLD = new Color(255, 165, 0);
     public static final Color YELLOW = new Color(255, 255, 0);
     public static final Color GREEN = new Color(0, 255, 0);
 
@@ -17,10 +16,8 @@ public class ColorUtil {
         return new Color((int) ((float) startColor.getRed() + progress * (float) (endColor.getRed() - startColor.getRed())), (int) ((float) startColor.getGreen() + progress * (float) (endColor.getGreen() - startColor.getGreen())), (int) ((float) startColor.getBlue() + progress * (float) (endColor.getBlue() - startColor.getBlue())));
     }
 
-    public static int applyOpacity(int color, float opacity) {
-        Color c = new Color(color);
-        int alpha = (int) (c.getAlpha() * opacity);
-        return new Color(c.getRed(), c.getGreen(), c.getBlue(), Math.min(255, Math.max(0, alpha))).getRGB();
+    public static Color withAlpha(Color color, int alpha) {
+        return new Color(color.getRed(), color.getGreen(), color.getBlue(), Math.min(255, Math.max(0, alpha)));
     }
 
     public static Color getHealthBlend(float percent) {
@@ -59,5 +56,39 @@ public class ColorUtil {
         }
         hue += 0.5F;
         return Color.HSBtoRGB(hue, 0.5F, 1F);
+    }
+
+    public static Color applyOpacity(Color color, float opacity) {
+        float alpha = Math.max(0.0f, Math.min(1.0f, opacity));
+        return new Color(color.getRed(), color.getGreen(), color.getBlue(), (int) (alpha * 255));
+    }
+
+    // --- 新增的方法 ---
+
+    /**
+     * 生成彩虹色
+     * @param seconds 循环周期(秒)
+     * @param offset 偏移量
+     * @param saturation 饱和度
+     * @param brightness 亮度
+     */
+    public static Color rainbow(int seconds, int offset, float saturation, float brightness) {
+        float hue = ((System.currentTimeMillis() + offset) % (seconds * 1000)) / (float) (seconds * 1000);
+        return new Color(Color.HSBtoRGB(hue, saturation, brightness));
+    }
+
+    /**
+     * 生成淡入淡出效果 (呼吸灯)
+     * @param color 基础颜色
+     * @param index 索引(用于列表中的波浪效果)
+     * @param count 总数(控制波浪频率)
+     */
+    public static Color fade(Color color, int index, int count) {
+        float[] hsb = new float[3];
+        Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), hsb);
+        float brightness = Math.abs((((System.currentTimeMillis() % 2000) / 1000.0f + (index / (float) count) * 2.0f) % 2.0f) - 1.0f);
+        brightness = 0.5f + 0.5f * brightness;
+        hsb[2] = brightness % 1.0f;
+        return new Color(Color.HSBtoRGB(hsb[0], hsb[1], hsb[2]));
     }
 }

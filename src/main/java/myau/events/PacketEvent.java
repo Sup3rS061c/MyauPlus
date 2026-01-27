@@ -1,9 +1,11 @@
 package myau.events;
 
+import lombok.Getter;
 import myau.event.events.callables.EventCancellable;
 import myau.event.types.EventType;
 import net.minecraft.network.Packet;
 
+@Getter
 public class PacketEvent extends EventCancellable {
     private final EventType type;
     private final Packet<?> packet;
@@ -13,11 +15,4 @@ public class PacketEvent extends EventCancellable {
         this.packet = packet;
     }
 
-    public EventType getType() {
-        return this.type;
-    }
-
-    public Packet<?> getPacket() {
-        return this.packet;
-    }
 }

@@ -1,9 +1,7 @@
 package myau.command;
 
 import myau.Myau;
-import myau.command.commands.BindCommand;
-import myau.command.commands.ClickGuiCommand;
-import myau.command.commands.ConfigCommand;
+import myau.command.commands.*;
 import myau.event.EventTarget;
 import myau.event.types.EventType;
 import myau.event.types.Priority;
@@ -23,6 +21,8 @@ public class CommandManager {
         this.commands.add(new BindCommand());
         this.commands.add(new ConfigCommand());
         this.commands.add(new ClickGuiCommand());
+        this.commands.add(new HideCommand());
+        this.commands.add(new ShowCommand());
     }
 
     public void handleCommand(String string) {

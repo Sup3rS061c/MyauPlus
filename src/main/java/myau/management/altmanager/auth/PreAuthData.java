@@ -18,24 +18,20 @@
  */
 package myau.management.altmanager.auth;
 
-public class PreAuthData
-{
+import lombok.Getter;
+
+public class PreAuthData {
     private final String ppft;
+    @Getter
     private final String urlPost;
 
-    public PreAuthData(String ppft, String urlPost)
-    {
+    public PreAuthData(String ppft, String urlPost) {
         this.ppft = ppft;
         this.urlPost = urlPost;
     }
 
-    public String getPPFT()
-    {
+    public String getPPFT() {
         return ppft;
     }
 
-    public String getUrlPost()
-    {
-        return urlPost;
-    }
 }

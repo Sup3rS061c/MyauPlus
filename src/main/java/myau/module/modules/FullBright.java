@@ -12,9 +12,9 @@ import net.minecraft.potion.PotionEffect;
 
 public class FullBright extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
+    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"GAMMA", "EFFECT"});
     private float prevGamma = Float.NaN;
     private boolean appliedNightVision = false;
-    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"GAMMA", "EFFECT"});
 
     public FullBright() {
         super("Fullbright", "Increases brightness to maximum.", Category.RENDER, 0, true, true);

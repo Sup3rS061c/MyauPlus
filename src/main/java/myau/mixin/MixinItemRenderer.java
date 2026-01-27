@@ -1,5 +1,6 @@
 package myau.mixin;
 
+import myau.module.modules.Animations;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.renderer.GlStateManager;
@@ -8,7 +9,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.MathHelper;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import myau.module.modules.Animations;
 import org.lwjgl.opengl.GL11;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -31,12 +31,11 @@ public abstract class MixinItemRenderer {
 
     @Shadow
     private float prevEquippedProgress;
+    private float delay = 0;
+    private long lastUpdateTime = System.currentTimeMillis();
 
     @Shadow
     protected abstract void doBlockTransformations();
-
-    private float delay = 0;
-    private long lastUpdateTime = System.currentTimeMillis();
 
     @Inject(method = "renderItemInFirstPerson", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/ItemRenderer;doBlockTransformations()V"))
     private void onRenderBlockingItem(float partialTicks, CallbackInfo ci) {
@@ -194,7 +193,7 @@ public abstract class MixinItemRenderer {
     }
 
     private void applyPushAnimation(float swingProgress) {
-        float var9 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
+        float var9 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
         GlStateManager.rotate(-var9 * 40.0F / 2.0F, var9 / 2.0F, 1.0F, 4.0F);
         GlStateManager.rotate(-var9 * 30.0F, 1.0F, var9 / 3.0F, -0.0F);
     }
@@ -213,7 +212,7 @@ public abstract class MixinItemRenderer {
 
     private void applySlideAnimation(float swingProgress) {
         GL11.glTranslated(0.08, -0.11, -0.07);
-        float var91 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
+        float var91 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
         GlStateManager.translate(-0.4f, 0.28f, 0.0f);
         GlStateManager.rotate(-var91 * 35.0f, -8.0f, -0.0f, 9.0f);
         GlStateManager.rotate(-var91 * 70.0f, 1.0f, -0.4f, -0.0f);
@@ -238,14 +237,14 @@ public abstract class MixinItemRenderer {
 
     private void applySwangAnimation(float swingProgress) {
         GL11.glTranslated(0.0, 0.03, 0.0);
-        float var9 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
+        float var9 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
         GlStateManager.rotate(-var9 * 74.0F / 2.0F, var9 / 2.0F, 1.0F, 4.0F);
         GlStateManager.rotate(-var9 * 52.0F, 1.0F, var9 / 3.0F, -0.0F);
     }
 
     private void applySwonkAnimation(float swingProgress) {
         GL11.glTranslated(0.0, 0.03, 0.0);
-        float var9 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
+        float var9 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
         GL11.glRotated(-var9 * -30.0F / 2.0F, var9 / 2.0F, 1.0F, 4.0F);
         GL11.glRotated(-var9 * 7.5F, 1.0F, var9 / 3.0F, -0.0F);
     }
@@ -265,7 +264,7 @@ public abstract class MixinItemRenderer {
 
     private void applyEditAnimation(float swingProgress) {
         GL11.glTranslated(-0.04, 0.06, 0.0);
-        float Swang = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
+        float Swang = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
         GlStateManager.rotate(Swang * 16.0F / 2.0F, -Swang, -0.0F, 2.0F);
         GlStateManager.rotate(Swang * 22.0F, 1.0F, -Swang / 3.0F, -0.0F);
     }
@@ -291,10 +290,10 @@ public abstract class MixinItemRenderer {
     }
 
     private void applyFloatAnimation(float swingProgress) {
-        GlStateManager.rotate(-MathHelper.sin(swingProgress * swingProgress * (float)Math.PI) * 40.0F / 2.0F,
-                MathHelper.sin(swingProgress * swingProgress * (float)Math.PI) / 2.0F, -0.0F, 9.0F);
-        GlStateManager.rotate(-MathHelper.sin(swingProgress * swingProgress * (float)Math.PI) * 30.0F,
-                1.0F, MathHelper.sin(swingProgress * swingProgress * (float)Math.PI) / 2.0F, -0.0F);
+        GlStateManager.rotate(-MathHelper.sin(swingProgress * swingProgress * (float) Math.PI) * 40.0F / 2.0F,
+                MathHelper.sin(swingProgress * swingProgress * (float) Math.PI) / 2.0F, -0.0F, 9.0F);
+        GlStateManager.rotate(-MathHelper.sin(swingProgress * swingProgress * (float) Math.PI) * 30.0F,
+                1.0F, MathHelper.sin(swingProgress * swingProgress * (float) Math.PI) / 2.0F, -0.0F);
     }
 
     private void applyRemixAnimation(float swingProgress) {
@@ -306,8 +305,8 @@ public abstract class MixinItemRenderer {
     private void applyAvatarAnimation(float swingProgress) {
         GlStateManager.translate(0.56F, -0.52F, -0.72F);
         GlStateManager.rotate(45.0F, 0.0F, 1.0F, 0.0F);
-        float f = MathHelper.sin(swingProgress * swingProgress * (float)Math.PI);
-        float f1 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
+        float f = MathHelper.sin(swingProgress * swingProgress * (float) Math.PI);
+        float f1 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
         GlStateManager.rotate(f * -20.0F, 0.0F, 1.0F, 0.0F);
         GlStateManager.rotate(f1 * -20.0F, 0.0F, 0.0F, 1.0F);
         GlStateManager.rotate(f1 * -40.0F, 1.0F, 0.0F, 0.0F);
@@ -331,15 +330,15 @@ public abstract class MixinItemRenderer {
     }
 
     private void applyYamatoAnimation(float swingProgress) {
-        float var9 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
+        float var9 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
         GL11.glRotatef(-var9 * 200F / 2.0F, -9.0F, 5.0F, 9.0F);
     }
 
     private void applySlideSwingAnimation(float swingProgress) {
         GlStateManager.translate(0.56F, -0.52F, -0.72F);
         GlStateManager.rotate(45.0F, 0.0F, 1.0F, 0.0F);
-        float f = MathHelper.sin(swingProgress * swingProgress * (float)Math.PI);
-        float f1 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
+        float f = MathHelper.sin(swingProgress * swingProgress * (float) Math.PI);
+        float f1 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
         GlStateManager.rotate(f * -0.0F, 0.0F, 1.0F, 0.0F);
         GlStateManager.rotate(f1 * -0.0F, 0.0F, 0.0F, 1.0F);
         GlStateManager.rotate(f1 * -80.0F, 1.0F, 0.0F, 0.0F);
@@ -350,8 +349,8 @@ public abstract class MixinItemRenderer {
     private void applySmallPushAnimation(float swingProgress) {
         GlStateManager.translate(0.56F, -0.52F, -0.72F);
         GlStateManager.rotate(45.0F, 0.0F, 1.0F, 0.0F);
-        float f = MathHelper.sin(swingProgress * swingProgress * (float)Math.PI);
-        float f1 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
+        float f = MathHelper.sin(swingProgress * swingProgress * (float) Math.PI);
+        float f1 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
         GlStateManager.rotate(f * -10.0F, 1.0F, 1.0F, 1.0F);
         GlStateManager.rotate(f1 * -10.0F, 1.0F, 1.0F, 1.0F);
         GlStateManager.rotate(f1 * -10.0F, 1.0F, 1.0F, 1.0F);
@@ -377,13 +376,13 @@ public abstract class MixinItemRenderer {
     }
 
     private void applyAquaAnimation(float swingProgress) {
-        float var9 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
+        float var9 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
         GlStateManager.rotate(-var9 * 17.0F / 2.0F, var9 / 2.0F, 1.0F, 4.0F);
         GlStateManager.rotate(-var9 * 6.0F, 1.0F, var9 / 3.0F, -0.0F);
     }
 
     private void applyAstroAnimation(float swingProgress) {
-        float var9 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
+        float var9 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
         GlStateManager.rotate(var9 * 50.0F / 9.0F, -var9, -0.0F, 90.0F);
         GlStateManager.rotate(var9 * 50.0F, 200.0F, -var9 / 2.0F, -0.0F);
     }
@@ -397,7 +396,7 @@ public abstract class MixinItemRenderer {
     }
 
     private void applyAstolfoAnimation(float swingProgress) {
-        float var9 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
+        float var9 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
         GlStateManager.rotate(-var9 * 58.0F / 2.0F, var9 / 2.0F, 1.0F, 0.5F);
         GlStateManager.rotate(-var9 * 43.0F, 1.0F, var9 / 3.0F, -0.0F);
     }
@@ -416,20 +415,20 @@ public abstract class MixinItemRenderer {
 
     private void applyMoonAnimation(float swingProgress) {
         GL11.glTranslated(-0.08, 0.12, 0.0);
-        float var9 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
+        float var9 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
         GlStateManager.rotate(-var9 * 65.0F / 2.0F, var9 / 2.0F, 1.0F, 4.0F);
         GlStateManager.rotate(-var9 * 60.0F, 1.0F, var9 / 3.0F, -0.0F);
     }
 
     private void applyMoonPushAnimation(float swingProgress) {
-        float sin = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
+        float sin = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
         GlStateManager.translate(-0.2F, 0.45F, 0.25F);
         GlStateManager.rotate(-sin * 20.0F, -5.0F, -5.0F, 9.0F);
     }
 
     private void applySmoothAnimation(float swingProgress) {
         GL11.glTranslated(0.14, -0.1, -0.24);
-        float var91 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
+        float var91 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
         GlStateManager.translate(-0.36f, 0.25f, -0.06f);
         GlStateManager.rotate(-var91 * 35.0f, -8.0f, -0.0f, 9.0f);
         GlStateManager.rotate(-var91 * 70.0f, 1.0f, 0.4f, -0.0f);
@@ -459,7 +458,7 @@ public abstract class MixinItemRenderer {
     private void applySigma3Animation(float swingProgress) {
         GL11.glTranslated(0.02, 0.02, 0.0);
         GL11.glTranslated(0.4D, -0.06D, -0.46D);
-        float Swang = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float)Math.PI);
+        float Swang = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
         GlStateManager.rotate(Swang * 25.0F / 2.0F, -Swang, -0.0F, 9.0F);
         GlStateManager.rotate(Swang * 15.0F, 1.0F, -Swang / 2.0F, -0.0F);
     }

@@ -55,21 +55,6 @@ import java.util.concurrent.TimeUnit;
 
 public class BedNuker extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    private final TimerUtil timer = new TimerUtil();
-    private final ArrayList<BlockPos> bedWhitelist = new ArrayList<BlockPos>();
-    private final Color colorRed = new Color(ChatColors.RED.toAwtColor());
-    private final Color colorYellow = new Color(ChatColors.YELLOW.toAwtColor());
-    private final Color colorGreen = new Color(ChatColors.GREEN.toAwtColor());
-    private BlockPos targetBed = null;
-    private int breakStage = 0;
-    private int tickCounter = 0;
-    private float breakProgress = 0.0F;
-    private boolean isBed = false;
-    private int savedSlot = -1;
-    private boolean readyToBreak = false;
-    private boolean breaking = false;
-    private boolean waitingForStart = false;
     public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"LEGIT", "SWAP"});
     public final FloatProperty range = new FloatProperty("range", 4.5F, 3.0F, 6.0F);
     public final PercentProperty speed = new PercentProperty("speed", 0);
@@ -82,6 +67,25 @@ public class BedNuker extends Module {
     public final ModeProperty moveFix = new ModeProperty("move-fix", 1, new String[]{"NONE", "SILENT", "STRICT"});
     public final ModeProperty showTarget = new ModeProperty("show-target", 1, new String[]{"NONE", "DEFAULT", "HUD"});
     public final ModeProperty showProgress = new ModeProperty("show-progress", 1, new String[]{"NONE", "DEFAULT", "HUD"});
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private final TimerUtil timer = new TimerUtil();
+    private final ArrayList<BlockPos> bedWhitelist = new ArrayList<>();
+    private final Color colorRed = new Color(ChatColors.RED.toAwtColor());
+    private final Color colorYellow = new Color(ChatColors.YELLOW.toAwtColor());
+    private final Color colorGreen = new Color(ChatColors.GREEN.toAwtColor());
+    private BlockPos targetBed = null;
+    private int breakStage = 0;
+    private int tickCounter = 0;
+    private float breakProgress = 0.0F;
+    private boolean isBed = false;
+    private int savedSlot = -1;
+    private boolean readyToBreak = false;
+    private boolean breaking = false;
+    private boolean waitingForStart = false;
+
+    public BedNuker() {
+        super("BedNuker", "Auto break beds", Category.WORLD, 0, false, false);
+    }
 
     private void resetBreaking() {
         if (this.targetBed != null) {
@@ -105,7 +109,7 @@ public class BedNuker extends Module {
                 int slot = ItemUtil.findInventorySlot(mc.thePlayer.inventory.currentItem, mc.theWorld.getBlockState(this.targetBed).getBlock());
                 progress = (float) this.tickCounter * this.getBreakDelta(mc.theWorld.getBlockState(this.targetBed), this.targetBed, slot, true);
             }
-            return Math.min(1.0F, progress / (1.0F - 0.3F * ((float) this.speed.getValue().intValue() / 100.0F)));
+            return Math.min(1.0F, progress / (1.0F - 0.3F * ((float) this.speed.getValue() / 100.0F)));
         }
     }
 
@@ -268,9 +272,7 @@ public class BedNuker extends Module {
                 }
             }
         }
-        if (targets.isEmpty()) {
-            return null;
-        } else {
+        if (!targets.isEmpty()) {
             targets.sort(
                     Comparator.comparingDouble(
                             blockPos -> blockPos.distanceSqToCenter(mc.thePlayer.posX, mc.thePlayer.posY + (double) mc.thePlayer.getEyeHeight(), mc.thePlayer.posZ)
@@ -289,8 +291,8 @@ public class BedNuker extends Module {
                 }
                 return blockPos;
             }
-            return null;
         }
+        return null;
     }
 
     private void doSwing() {
@@ -314,10 +316,6 @@ public class BedNuker extends Module {
             default:
                 return new Color(-1);
         }
-    }
-
-    public BedNuker() {
-        super("BedNuker", "Auto break beds",Category.WORLD,0,false,false);
     }
 
     public boolean isReady() {
@@ -375,8 +373,8 @@ public class BedNuker extends Module {
                         BlockPos target = this.targetBed;
                         float delta = tick * this.getBreakDelta(blockState, target, slot, canBreak);
                         mc.effectRenderer.addBlockHitEffects(this.targetBed, this.getHitFacing(this.targetBed));
-                        if (this.breakProgress >= 1.0F - 0.3F * ((float) this.speed.getValue().intValue() / 100.0F)
-                                || delta >= 1.0F - 0.3F * ((float) this.speed.getValue().intValue() / 100.0F)) {
+                        if (this.breakProgress >= 1.0F - 0.3F * ((float) this.speed.getValue() / 100.0F)
+                                || delta >= 1.0F - 0.3F * ((float) this.speed.getValue() / 100.0F)) {
                             if (this.mode.getValue() == 1) {
                                 this.readyToBreak = true;
                                 this.savedSlot = mc.thePlayer.inventory.currentItem;

@@ -2,6 +2,7 @@ package myau.property.properties;
 
 import com.google.gson.JsonObject;
 import myau.property.Property;
+
 import java.util.function.BooleanSupplier;
 
 public class ColorProperty extends Property<Integer> {
@@ -26,7 +27,7 @@ public class ColorProperty extends Property<Integer> {
     @Override
     public boolean parseString(String string) {
         try {
-            return this.setValue((int)Long.parseLong(string.replace("#", ""), 16) | 0xFF000000);
+            return this.setValue((int) Long.parseLong(string.replace("#", ""), 16) | 0xFF000000);
         } catch (NumberFormatException e) {
             return false;
         }

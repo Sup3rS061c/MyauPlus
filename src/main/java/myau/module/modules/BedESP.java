@@ -34,6 +34,14 @@ public class BedESP extends Module {
     public final BooleanProperty outline;
     public final BooleanProperty obsidian;
 
+    public BedESP() {
+        super("BedESP", "Shows beds through walls.", Category.RENDER, 0, false, false);
+        this.customColor = new ColorProperty("custom-color", (int) 8085714755840333141L, () -> this.color.getValue() == 0);
+        this.opacity = new PercentProperty("opacity", 25);
+        this.outline = new BooleanProperty("outline", false);
+        this.obsidian = new BooleanProperty("obsidian", true);
+    }
+
     private Color getColor() {
         switch (this.color.getValue()) {
             case 0:
@@ -59,14 +67,6 @@ public class BedESP extends Module {
         RenderUtil.drawBlockBox(
                 blockPos, 1.0, 170, 0, 170
         );
-    }
-
-    public BedESP() {
-        super("BedESP", "Shows beds through walls.", Category.RENDER, 0, false, false);
-        this.customColor = new ColorProperty("custom-color", (int) 8085714755840333141L, () -> this.color.getValue() == 0);
-        this.opacity = new PercentProperty("opacity", 25);
-        this.outline = new BooleanProperty("outline", false);
-        this.obsidian = new BooleanProperty("obsidian", true);
     }
 
     public double getHeight() {

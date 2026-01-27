@@ -9,7 +9,8 @@ import java.lang.reflect.Field;
  * Sets the Minecraft session via reflection (Minecraft 1.8.9 has no public setter).
  */
 public final class SessionUtil {
-    private SessionUtil() {}
+    private SessionUtil() {
+    }
 
     public static void setSession(Minecraft mc, Session session) {
         if (mc == null || session == null) return;
