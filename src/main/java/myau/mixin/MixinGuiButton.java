@@ -122,26 +122,12 @@ public abstract class MixinGuiButton {
     private void drawButtonText(Minecraft mc, int color) {
         String text = this.displayString;
 
-        // 尝试使用 Product Sans 字体
-        // 检查 null 避免崩溃
-        if (FontManager.productSans20 != null) {
-            // 计算垂直居中：注意自定义字体高度可能不同，微调 +1 或 +2
-            float fontY = (float) (this.yPosition + (this.height - FontManager.productSans20.getHeight()) / 2) + 1;
-
-            FontManager.productSans20.drawCenteredString(
-                    text,
-                    this.xPosition + this.width / 2.0,
-                    fontY,
-                    color
-            );
-        } else {
-            // 降级回退到原版像素字体
-            mc.fontRendererObj.drawStringWithShadow(
-                    text,
-                    this.xPosition + this.width / 2 - mc.fontRendererObj.getStringWidth(text) / 2,
-                    this.yPosition + (this.height - 8) / 2,
-                    color
-            );
-        }
+        // 降级回退到原版像素字体
+        mc.fontRendererObj.drawStringWithShadow(
+                text,
+                this.xPosition + this.width / 2 - mc.fontRendererObj.getStringWidth(text) / 2,
+                this.yPosition + (this.height - 8) / 2,
+                color
+        );
     }
 }
