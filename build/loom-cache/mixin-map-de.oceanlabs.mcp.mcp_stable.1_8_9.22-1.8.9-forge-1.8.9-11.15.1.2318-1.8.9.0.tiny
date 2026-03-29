@@ -39,6 +39,8 @@ FIELD	myau/mixin/MixinMinecraft	Lnet/minecraft/client/multiplayer/WorldClient;	t
 FIELD	myau/mixin/MixinMinecraft	Lnet/minecraft/client/entity/EntityPlayerSP;	thePlayer	field_71439_g
 FIELD	myau/mixin/MixinMinecraft	Lnet/minecraft/client/gui/GuiScreen;	currentScreen	field_71462_r
 FIELD	myau/mixin/MixinMinecraft	I	leftClickCounter	field_71429_W
+FIELD	myau/mixin/MixinMinecraft	I	displayWidth	field_71443_c
+FIELD	myau/mixin/MixinMinecraft	I	displayHeight	field_71440_d
 METHOD	myau/mixin/MixinBlockModelRenderer	(Lnet/minecraft/world/IBlockAccess;Lnet/minecraft/client/resources/model/IBakedModel;Lnet/minecraft/block/Block;Lnet/minecraft/util/BlockPos;Lnet/minecraft/client/renderer/WorldRenderer;Z)Z	renderModelAmbientOcclusion	func_178265_a
 METHOD	myau/mixin/MixinEntity	()Z	isRiding	func_70115_ae
 METHOD	myau/mixin/MixinGuiNewChat	()I	getChatWidth	func_146228_f
