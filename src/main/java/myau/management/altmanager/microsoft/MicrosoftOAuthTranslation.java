@@ -499,10 +499,10 @@ public class MicrosoftOAuthTranslation {
                     if (code != null && !code.isEmpty()) {
                         System.out.println("Received auth code: " + code);
                         handleCode(code);
-                        responseHtml = "<html><body style='font-family: Arial, sans-serif; text-align: center; padding: 50px;'><h1 style='color: green;'>Authentication Successful!</h1><p>You may now close this page and return to the game.</p><script>setTimeout(function() { window.close(); }, 2000);</script></body></html>";
+                        responseHtml = "<html><body style='font-family: Arial, sans-serif; text-align: center; padding: 50px;'><h1 style='color: green;'>√ Authentication Successful!</h1><p>You may now close this page and return to the game.</p><script>setTimeout(function() { window.close(); }, 2000);</script></body></html>";
                     } else if (error != null) {
                         System.out.println("Received error: " + error + " - " + params.get("error_description"));
-                        responseHtml = "<html><body style='font-family: Arial, sans-serif; text-align: center; padding: 50px;'><h1 style='color: red;'>�?Authentication Failed</h1><p>Error: " + error + "</p><p>Please try again.</p></body></html>";
+                        responseHtml = "<html><body style='font-family: Arial, sans-serif; text-align: center; padding: 50px;'><h1 style='color: red;'>✘ Authentication Failed</h1><p>Error: " + error + "</p><p>Please try again.</p></body></html>";
                         if (callback != null) callback.accept(null);
                     } else {
                         System.out.println("No auth code or error received");
