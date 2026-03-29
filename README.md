@@ -1,4 +1,4 @@
-MyauPlus
+# MyauPlus
 
 一个基于 Openmyau-0910 的 Forge 辅助模组。
 
@@ -16,9 +16,8 @@ Gemini3
 
 DeepSeek
 
------------------------------------------
 
-如何构建？
+# 如何构建？
 
 1.打开你的idea
 

@@ -6,6 +6,7 @@ import myau.event.types.EventType;
 import myau.events.*;
 import myau.init.Initializer;
 import myau.module.modules.NoHitDelay;
+import myau.ui.impl.gui.SplashScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiScreen;
@@ -35,6 +36,23 @@ public abstract class MixinMinecraft {
     public GuiScreen currentScreen;
     @Shadow
     private int leftClickCounter;
+
+    @Shadow
+    public int displayWidth;
+
+    @Shadow
+    public int displayHeight;
+
+    @Inject(method = "run", at = @At("HEAD"))
+    private void runHook(CallbackInfo callbackInfo) {
+        if(displayWidth < 1067)
+            displayWidth = 1067;
+
+        if(displayHeight < 622)
+            displayHeight = 622;
+
+        SplashScreen.show();
+    }
 
     @Inject(
             method = {"startGame"},
