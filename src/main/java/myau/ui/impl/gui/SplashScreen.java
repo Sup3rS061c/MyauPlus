@@ -9,16 +9,7 @@ import java.io.InputStream;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * 无边框启动画面
- *
- * <ul>
- *   <li>全屏展示 /assets/minecraft/blitzbounce/splash.png</li>
- *   <li>右下角显示 "SushiYuan Shield 加载中..." 文字</li>
- *   <li>右下角进度条随 10 秒倒计时填充</li>
- *   <li>倒计时结束后窗口关闭，调用线程恢复执行</li>
- * </ul>
- */
+
 public class SplashScreen {
 
     private static final int   DURATION_MS  = 10_000;   // 总时长 10 秒
@@ -33,7 +24,7 @@ public class SplashScreen {
     private static final Color COLOR_TEXT   = new Color(255, 255, 255, 210);
     private static final String LABEL_TEXT  = "SuhiYuan Shield 保护中...";
 
-    /** 显示 splash 窗口并阻塞当前线程 50 秒。 */
+    /** 显示 splash 窗口并阻塞当前线程 10 秒。 */
     public static void show() {
         CountDownLatch latch = new CountDownLatch(1);
 
