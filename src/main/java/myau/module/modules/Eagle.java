@@ -22,6 +22,7 @@ public class Eagle extends Module {
     public final IntProperty minDelay = new IntProperty("min-delay", 2, 0, 10);
     public final IntProperty maxDelay = new IntProperty("max-delay", 3, 0, 10);
     public final BooleanProperty directionCheck = new BooleanProperty("direction-check", true);
+    public final BooleanProperty jumpCheck = new BooleanProperty("jump-check", true);
     public final BooleanProperty pitchCheck = new BooleanProperty("pitch-check", true);
     public final BooleanProperty blocksOnly = new BooleanProperty("blocks-only", true);
     private int sneakDelay = 0;
@@ -39,6 +40,8 @@ public class Eagle extends Module {
         if (this.directionCheck.getValue() && mc.gameSettings.keyBindForward.isKeyDown()) {
             return false;
         } else if (this.pitchCheck.getValue() && mc.thePlayer.rotationPitch < 69.0F) {
+            return false;
+        } else if (this.jumpCheck.getValue() && mc.gameSettings.keyBindJump.isKeyDown()) {
             return false;
         } else {
             return (!this.blocksOnly.getValue() || ItemUtil.isHoldingBlock()) && mc.thePlayer.onGround;
