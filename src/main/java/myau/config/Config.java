@@ -104,4 +104,35 @@ public class Config {
             ChatUtil.sendFormatted(String.format("%sConfig couldn't be saved (&c&o%s&r)&r", Myau.clientName, file.getName()));
         }
     }
+
+    public void saveDefault() {
+        try {
+            JsonObject object = new JsonObject();
+            // Saving GUI state
+
+            // Save background shader index
+            object.addProperty("background_index", BackgroundRenderer.currentBackgroundIndex);
+
+            // Properties
+
+            for (Module module : Myau.moduleManager.modules.values()) {
+                JsonObject moduleObject = new JsonObject();
+                moduleObject.addProperty("toggled", module.isEnabled());
+                moduleObject.addProperty("key", module.getKey());
+                moduleObject.addProperty("hidden", module.isHidden());
+                ArrayList<Property<?>> list = Myau.propertyManager.properties.get(module.getClass());
+                if (list != null) {
+                    for (Property<?> property : list) {
+                        property.write(moduleObject);
+                    }
+                }
+                object.add(module.getName(), moduleObject);
+            }
+            PrintWriter printWriter = new PrintWriter(new FileWriter(new File("default.json")));
+            printWriter.println(gson.toJson(object));
+            printWriter.close();
+        } catch (IOException e) {
+            //no
+        }
+    }
 }
