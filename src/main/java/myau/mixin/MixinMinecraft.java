@@ -177,4 +177,10 @@ public abstract class MixinMinecraft {
             inventoryPlayer.changeCurrentItem(slot);
         }
     }
+
+    @Inject(method = "shutdown", at = @At("HEAD"))
+    private void shutdownHook(CallbackInfo callbackInfo) {
+        Myau myau = new Myau();
+        myau.shutdown();
+    }
 }

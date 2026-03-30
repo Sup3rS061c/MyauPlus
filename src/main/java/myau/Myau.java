@@ -178,10 +178,11 @@ public class Myau {
         if (targetManager.file.exists()) {
             targetManager.load();
         }
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            FontResourceManager.cleanupAllFonts();
-            globalConfig.save();
-            hideConfig.save();
-        }));
+    }
+
+    public void shutdown() {
+        FontResourceManager.cleanupAllFonts();
+        globalConfig.save();
+        hideConfig.save();
     }
 }
