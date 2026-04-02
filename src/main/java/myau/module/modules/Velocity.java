@@ -401,8 +401,8 @@ public class Velocity extends Module {
             IAccessorS12PacketEntityVelocity accessor = (IAccessorS12PacketEntityVelocity) packet;
 
             switch (mode.getValue()) {
-                case 25:
-                    if (!mc.thePlayer.isSwingInProgress) return;
+                case "Matrix":
+                    //if (!mc.thePlayer.isSwingInProgress) return;
 
                     if (mc.thePlayer.hurtTime > 0) {
                         mc.thePlayer.motionX *= 0.6D;
