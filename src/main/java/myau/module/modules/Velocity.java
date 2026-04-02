@@ -402,7 +402,7 @@ public class Velocity extends Module {
 
             switch (mode.getValue()) {
                 case 25:
-                    if (mc.thePlayer.isSwingInProgress) return;
+                    if (!mc.thePlayer.isSwingInProgress) return;
 
                     if (mc.thePlayer.hurtTime > 0) {
                         mc.thePlayer.motionX *= 0.6D;
