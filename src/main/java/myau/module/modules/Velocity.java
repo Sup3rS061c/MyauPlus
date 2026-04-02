@@ -41,7 +41,7 @@ public class Velocity extends Module {
             "Vulcan", "MatrixReduce", "MatrixReducePlus", "IntaveReduce",
             "GrimC03", "Hypixel", "HypixelAir", "BlockSMC", "GrimCombat",
             "Polar", "MatrixNoXZ", "Intave13", "SmartJumpReset", "Intave14",
-            "HypixelPrediction", "Matrix"
+            "HypixelPrediction"
     });
 
     public final FloatProperty horizontal = new FloatProperty("Horizontal", 0.0f, -2.0f, 2.0f, () -> mode.getValue() == 0 || mode.getValue() == 9);
@@ -401,13 +401,6 @@ public class Velocity extends Module {
             IAccessorS12PacketEntityVelocity accessor = (IAccessorS12PacketEntityVelocity) packet;
 
             switch (mode.getValue()) {
-                case 25:
-                    //if (!mc.thePlayer.isSwingInProgress) return;
-
-                    if (mc.thePlayer.hurtTime > 0) {
-                        mc.thePlayer.motionX *= 0.6D;
-                        mc.thePlayer.motionZ *= 0.6D;
-                    }
 
                 case 24:
                     double x = (double) packet.getMotionX() / 8000.0;
