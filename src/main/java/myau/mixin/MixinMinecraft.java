@@ -16,6 +16,7 @@ import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import org.lwjgl.opengl.Display;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -182,5 +183,10 @@ public abstract class MixinMinecraft {
     private void shutdownHook(CallbackInfo callbackInfo) {
         Myau myau = new Myau();
         myau.shutdown();
+    }
+
+    @Inject(method = "createDisplay", at = @At(value = "INVOKE", target = "Lorg/lwjgl/opengl/Display;setTitle(Ljava/lang/String;)V", shift = At.Shift.AFTER))
+    private void createDisplay(CallbackInfo callbackInfo) {
+        Display.setTitle("Myau+ " + Myau.clientVersion);
     }
 }
