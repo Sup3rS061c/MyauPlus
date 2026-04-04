@@ -168,9 +168,13 @@ public class Myau {
         hideConfig = new HideConfig("Hide", true);
         if (globalConfig.file.exists()) {
             globalConfig.load();
+        } else {
+            globalConfig.save();
         }
         if (hideConfig.file.exists()) {
             hideConfig.load();
+        } else {
+            hideConfig.save();
         }
         if (friendManager.file.exists()) {
             friendManager.load();
