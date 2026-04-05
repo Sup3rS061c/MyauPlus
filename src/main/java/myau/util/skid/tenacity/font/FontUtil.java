@@ -1,7 +1,8 @@
 package myau.util.skid.tenacity.font;
 
-import dev.tenacity.utils.Utils;
+
 import lombok.Getter;
+import myau.util.skid.tenacity.Utils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
 
