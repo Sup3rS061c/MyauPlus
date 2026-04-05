@@ -1004,4 +1004,22 @@ public class RenderUtil {
     public static float deltaTime() {
         return ((IAccessorMinecraft) mc).getTimer().renderPartialTicks;
     }
+
+    // Sometimes colors get messed up in for loops, so we use this method to reset it to allow new colors to be used
+    public static void resetColor() {
+        GlStateManager.color(1, 1, 1, 1);
+    }
+
+    // This method colors the next avalible texture with a specified alpha value ranging from 0-1
+    public static void color(int color, float alpha) {
+        float r = (float) (color >> 16 & 255) / 255.0F;
+        float g = (float) (color >> 8 & 255) / 255.0F;
+        float b = (float) (color & 255) / 255.0F;
+        GlStateManager.color(r, g, b, alpha);
+    }
+
+    // Colors the next texture without a specified alpha value
+    public static void color(int color) {
+        color(color, (float) (color >> 24 & 255) / 255.0F);
+    }
 }

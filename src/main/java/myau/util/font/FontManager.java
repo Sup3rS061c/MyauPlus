@@ -20,7 +20,7 @@ public class FontManager {
             nbpInforma12, nbpInforma16, nbpInforma20, nbpInforma24, nbpInforma28, nbpInforma32,
             tahomaBold12, tahomaBold16, tahomaBold20, tahomaBold24, tahomaBold28, tahomaBold32,
             noti12, noti16, noti18, noti20, noti24, noti28, noti32,
-            nunitoBold12, nunitoBold16, nunitoBold18, nunitoBold20, nunitoBold24, nunitoBold28, nunitoBold32, nunitoBold48, nunitoBold80, harmonyOS_Sans20;
+            nunitoBold12, nunitoBold16, nunitoBold18, nunitoBold20, nunitoBold24, nunitoBold28, nunitoBold32, nunitoBold48, nunitoBold80, harmonyOS_Sans20, tenacityBoldFont80;
 
     private static int prevScale;
 
@@ -68,6 +68,7 @@ public class FontManager {
             tenacity28 = new FontRenderer(FontUtil.getResource(locationMap, "tenacity.ttf", 28));
             tenacity32 = new FontRenderer(FontUtil.getResource(locationMap, "tenacity.ttf", 32));
             tenacity80 = new FontRenderer(FontUtil.getResource(locationMap, "tenacity.ttf", 80));
+            tenacityBoldFont80 = new FontRenderer(FontUtil.getResource(locationMap, "tenacity-bold.ttf", 80));
 
             // Vision Fonts
             vision12 = new FontRenderer(FontUtil.getResource(locationMap, "Vision.otf", 12));

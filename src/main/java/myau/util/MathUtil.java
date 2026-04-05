@@ -41,4 +41,8 @@ public class MathUtil {
     public static double interporate(float progress, double previousValue, double currentValue) {
         return previousValue + (currentValue - previousValue) * progress;
     }
+
+    public static double roundToHalf(double d) {
+        return Math.round(d * 2) / 2.0;
+    }
 }
