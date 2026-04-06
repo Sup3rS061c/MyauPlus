@@ -17,7 +17,7 @@ public abstract class MixinSplashProgress {
 
     @Inject(method="start", at=@At(value="FIELD", target="Lnet/minecraftforge/fml/client/SplashProgress;enabled:Z", opcode=178, remap=false, ordinal=0), remap=false, require=1, allow=1)
     private static void start(CallbackInfo callbackInfo) {
-        enabled = true;
+        enabled = false;
     }
 
 }
