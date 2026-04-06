@@ -189,4 +189,10 @@ public abstract class MixinMinecraft {
     private void createDisplay(CallbackInfo callbackInfo) {
         Display.setTitle("Myau+ " + Myau.clientVersion);
     }
+
+    @Inject(method = "drawSplashScreen", at = @At("HEAD"), cancellable = true)
+    private void splashHook(CallbackInfo callbackInfo) {
+        callbackInfo.cancel();
+        myau.ui.impl.tenacity.SplashScreen.drawScreen();
+    }
 }
