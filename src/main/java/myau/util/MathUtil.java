@@ -45,4 +45,8 @@ public class MathUtil {
     public static double roundToHalf(double d) {
         return Math.round(d * 2) / 2.0;
     }
+
+    public static int interpolateInt(int oldValue, int newValue, double interpolationValue){
+        return interpolate(oldValue, newValue, (float) interpolationValue).intValue();
+    }
 }

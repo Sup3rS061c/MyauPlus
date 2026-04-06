@@ -2,10 +2,21 @@ package myau.util;
 
 import java.awt.*;
 
+import static myau.util.MathUtil.interpolateInt;
+
 public class ColorUtil {
     public static final Color RED = new Color(255, 0, 0);
     public static final Color YELLOW = new Color(255, 255, 0);
     public static final Color GREEN = new Color(0, 255, 0);
+
+    public static Color tripleColor(int rgbValue) {
+        return tripleColor(rgbValue, 1);
+    }
+
+    public static Color tripleColor(int rgbValue, float alpha) {
+        alpha = Math.min(1, Math.max(0, alpha));
+        return new Color(rgbValue, rgbValue, rgbValue, (int) (255 * alpha));
+    }
 
     public static Color fromHSB(float hue, float saturation, float brightness) {
         return new Color(Color.HSBtoRGB(hue, saturation, brightness));
@@ -63,6 +74,13 @@ public class ColorUtil {
         return new Color(color.getRed(), color.getGreen(), color.getBlue(), (int) (alpha * 255));
     }
 
+    public static int applyOpacity(int color, float opacity) {
+        Color old = new Color(color);
+        return applyOpacity(old, opacity).getRGB();
+    }
+
+
+
     // --- 新增的方法 ---
 
     /**
@@ -90,5 +108,13 @@ public class ColorUtil {
         brightness = 0.5f + 0.5f * brightness;
         hsb[2] = brightness % 1.0f;
         return new Color(Color.HSBtoRGB(hsb[0], hsb[1], hsb[2]));
+    }
+
+    public static Color interpolateColorC(Color color1, Color color2, float amount) {
+        amount = Math.min(1, Math.max(0, amount));
+        return new Color(interpolateInt(color1.getRed(), color2.getRed(), amount),
+                interpolateInt(color1.getGreen(), color2.getGreen(), amount),
+                interpolateInt(color1.getBlue(), color2.getBlue(), amount),
+                interpolateInt(color1.getAlpha(), color2.getAlpha(), amount));
     }
 }

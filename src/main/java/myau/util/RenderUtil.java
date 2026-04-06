@@ -35,6 +35,8 @@ import java.nio.IntBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.lwjgl.opengl.GL11.*;
+
 public class RenderUtil {
     private static final String ROUNDED_RECT_SRC =
             "#version 120\n" +
@@ -1021,5 +1023,41 @@ public class RenderUtil {
     // Colors the next texture without a specified alpha value
     public static void color(int color) {
         color(color, (float) (color >> 24 & 255) / 255.0F);
+    }
+
+    public static Framebuffer createFrameBuffer(Framebuffer framebuffer) {
+        return createFrameBuffer(framebuffer, false);
+    }
+
+    public static Framebuffer createFrameBuffer(Framebuffer framebuffer, boolean depth) {
+        if (needsNewFramebuffer(framebuffer)) {
+            if (framebuffer != null) {
+                framebuffer.deleteFramebuffer();
+            }
+            return new Framebuffer(mc.displayWidth, mc.displayHeight, depth);
+        }
+        return framebuffer;
+    }
+
+    public static boolean needsNewFramebuffer(Framebuffer framebuffer) {
+        return framebuffer == null || framebuffer.framebufferWidth != mc.displayWidth || framebuffer.framebufferHeight != mc.displayHeight;
+    }
+
+    // This will set the alpha limit to a specified value ranging from 0-1
+    public static void setAlphaLimit(float limit) {
+        GlStateManager.enableAlpha();
+        GlStateManager.alphaFunc(GL_GREATER, (float) (limit * .01));
+    }
+
+    // Scales the data that you put in the runnable
+    public static void scaleStart(float x, float y, float scale) {
+        glPushMatrix();
+        glTranslatef(x, y, 0);
+        glScalef(scale, scale, 1);
+        glTranslatef(-x, -y, 0);
+    }
+
+    public static void scaleEnd() {
+        glPopMatrix();
     }
 }
