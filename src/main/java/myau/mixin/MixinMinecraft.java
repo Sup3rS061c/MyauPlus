@@ -53,7 +53,7 @@ public abstract class MixinMinecraft {
         if(displayHeight < 622)
             displayHeight = 622;
 
-        FontUtil.setupFonts();
+
         SplashScreen.show();
     }
 
@@ -62,6 +62,7 @@ public abstract class MixinMinecraft {
             at = {@At("HEAD")}
     )
     private void startGame(CallbackInfo callbackInfo) {
+        FontUtil.setupFonts();
         new Initializer();
     }
 
