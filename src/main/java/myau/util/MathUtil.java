@@ -47,6 +47,6 @@ public class MathUtil {
     }
 
     public static int interpolateInt(int oldValue, int newValue, double interpolationValue){
-        return interpolate(oldValue, newValue, (float) interpolationValue).intValue();
+        return (int) interpolate(oldValue, newValue, (float) interpolationValue);
     }
 }

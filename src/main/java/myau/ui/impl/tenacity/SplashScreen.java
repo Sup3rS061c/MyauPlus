@@ -113,11 +113,11 @@ public class SplashScreen implements Utils {
     }
 
 
-    private static Animation fadeAnim;
-    private static Animation moveAnim;
+    private static DecelerateAnimation fadeAnim;
+    private static DecelerateAnimation moveAnim;
     private static Animation versionAnim;
-    private static Animation progressAnim;
-    private static Animation progress2Anim;
+    private static DecelerateAnimation progressAnim;
+    private static DecelerateAnimation progress2Anim;
 
     private static void drawScreen(float width, float height) {
         RenderUtil.drawRect(0, 0, width, height, Color.BLACK.getRGB());
