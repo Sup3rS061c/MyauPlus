@@ -7,6 +7,7 @@ import myau.events.*;
 import myau.init.Initializer;
 import myau.module.modules.NoHitDelay;
 import myau.ui.impl.gui.SplashScreen;
+import myau.util.skid.tenacity.font.FontUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiScreen;
@@ -52,6 +53,7 @@ public abstract class MixinMinecraft {
         if(displayHeight < 622)
             displayHeight = 622;
 
+        FontUtil.setupFonts();
         SplashScreen.show();
     }
 

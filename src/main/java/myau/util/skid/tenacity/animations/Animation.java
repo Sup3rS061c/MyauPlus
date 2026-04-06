@@ -2,6 +2,7 @@ package myau.util.skid.tenacity.animations;
 
 
 import myau.util.TimerUtil;
+import myau.util.skid.tenacity.animations.Direction;
 
 /**
  * This animation superclass was made by Foggy and advanced by cedo
