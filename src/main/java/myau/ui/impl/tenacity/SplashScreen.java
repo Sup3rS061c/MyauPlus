@@ -4,12 +4,15 @@ package myau.ui.impl.tenacity;
 import myau.Myau;
 import myau.util.skid.tenacity.RoundedUtil;
 import myau.util.skid.tenacity.Tenacity;
-import myau.util.skid.tenacity.animations.Animation;
+
 import myau.util.ColorUtil;
 import myau.util.RenderUtil;
-import myau.util.animation.DecelerateAnimation;
+
 import myau.util.skid.tenacity.Utils;
+import myau.util.skid.tenacity.animations.Animation;
 import myau.util.skid.tenacity.animations.Direction;
+
+import myau.util.skid.tenacity.animations.impl.DecelerateAnimation;
 import myau.util.skid.tenacity.animations.impl.EaseBackIn;
 import myau.util.skid.tenacity.font.CustomFont;
 import net.minecraft.client.Minecraft;
@@ -113,11 +116,11 @@ public class SplashScreen implements Utils {
     }
 
 
-    private static DecelerateAnimation fadeAnim;
-    private static DecelerateAnimation moveAnim;
+    private static Animation fadeAnim;
+    private static Animation moveAnim;
     private static Animation versionAnim;
-    private static DecelerateAnimation progressAnim;
-    private static DecelerateAnimation progress2Anim;
+    private static Animation progressAnim;
+    private static Animation progress2Anim;
 
     private static void drawScreen(float width, float height) {
         RenderUtil.drawRect(0, 0, width, height, Color.BLACK.getRGB());
